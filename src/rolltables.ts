@@ -2,8 +2,7 @@ import chalk from "chalk"
 import {
   isBundle,
   isTable,
-  loadRollable,
-  loadTable,
+  getRollable,
   RegisteredBundle,
   RegisteredRollable,
   RegisteredTable,
@@ -19,6 +18,8 @@ import {
   TableRef,
   TableRow,
   TableRowContext,
+  MultiDimensionalTableRow,
+  MultiDimensionalTable,
 } from "./types"
 
 const parseInteger = (s: string) => parseInt(s, 10)
@@ -103,7 +104,9 @@ export const parseRollTableRows = (
       ret = [...ret, ...rows]
     } else {
       // Add this "meta" item to the previous row's `meta` array
-      ret[ret.length - 1].meta.push(item)
+      const prev = ret[ret.length - 1]
+      if (!prev.meta) prev.meta = []
+      prev.meta.push(item)
     }
   }
 
@@ -253,7 +256,7 @@ export const rollOnTable = async (
     total?: number
     modifier?: number
     reroll?: number[]
-    currentDepth?: number,
+    currentDepth?: number
   } = {},
 ): Promise<RollResult> => {
   let {dice, total, currentDepth} = opts
@@ -328,11 +331,11 @@ export const evaluateRowMeta = async (
   currentDepth: number,
 ): Promise<RollResult[][]> => {
   if (row.evaluatedMeta) {
-    console.warn("already evaluated meta...")
+    // console.warn('already evaluated meta...')
   }
   const context = contextFromEvaluatedRow(row)
   row.evaluatedMeta = await Promise.all(
-    row.meta.map((tableRef) =>
+    (row.meta || []).map((tableRef) =>
       rollTableRef(tableRef, context, table, currentDepth),
     ),
   )
@@ -354,7 +357,7 @@ const rollTableRef = async (
   currentDepth: number = 0,
 ) => {
   let results: RollResult[] = []
-  const otherRollable = await loadRollable(tableRef.path, relativeToTable)
+  const otherRollable = await getRollable(tableRef.path, relativeToTable)
   const rawCount = tableRef.rollCount
   const rollCount =
     typeof rawCount === "number"
@@ -378,7 +381,7 @@ const rollTableRef = async (
       results = results.concat(
         ...(await rollBundleOrTable(otherRollable, currentDepth)),
       )
-    } else {
+    } else if (otherRollable) {
       const result = await rollOnTable(otherRollable, {
         modifier,
         reroll,
@@ -409,10 +412,55 @@ const isTableRowArray = (input: string | any[]): input is TableRow[] =>
   input[0].range !== undefined &&
   input[0].text !== undefined
 
+export const getDimensionIdentifiers = (
+  table: Pick<MultiDimensionalTable, "dimensions">,
+) =>
+  table.dimensions.map((dim) =>
+    dim
+      .toLowerCase()
+      .replace(/[^0-9a-zA-Z]/, "-")
+      .replace(/--+/, "-"),
+  )
+
+export const prepareMultiDimensionalTable = (
+  input: {
+    dice: Die[] | string
+    rows: MultiDimensionalTableRow[]
+  } & Pick<
+    MultiDimensionalTable,
+    "title" | "extraResults" | "autoEvaluate" | "dimensions"
+  >,
+): Table[] => {
+  const {dimensions, extraResults, rows, dice, title, autoEvaluate} = input
+  if (!dimensions) throw "no dimensions provided"
+  return dimensions.map(
+    (dimTitle, dimIndex): Table => {
+      return prepareTable({
+        title: `${title} (${dimTitle})`,
+        autoEvaluate,
+        dice,
+        extraResults,
+        rows: rows
+          .map(
+            (row): TableRow | null => {
+              const range = parseRange(row.range.split("/")[dimIndex])
+              if (range === null) return null
+              return {
+                ...row,
+                range,
+              }
+            },
+          )
+          .filter(<TableRow>(t: TableRow | null): t is TableRow => t !== null),
+      })
+    },
+  )
+}
+
 export const prepareTable = (
   input: {
     dice?: Die[] | string
-    rows: TableRow[] | string | Array<string | TableRef>,
+    rows: TableRow[] | string | Array<string | TableRef>
   } & Pick<Table, "title" | "extraResults" | "autoEvaluate">,
 ): Table => {
   const {title, extraResults, rows} = input
@@ -448,7 +496,7 @@ export const prepareTable = (
 
 export const prepareSimpleTable = (
   input: {
-    rows: string,
+    rows: string
   } & Pick<Table, "title" | "extraResults" | "autoEvaluate">,
 ): Table => {
   const {title, extraResults, rows, autoEvaluate} = input
@@ -533,10 +581,10 @@ export const evaluatePlaceholders = (text: string) => {
     )
     if (match && match.groups) {
       const percent = parseInteger(
-        match.groups['number1'] || match.groups['number2'],
+        match.groups["number1"] || match.groups["number2"],
       )
       const index = match.index as number
-      const innerText = match.groups['text1'] || match.groups['text2']
+      const innerText = match.groups["text1"] || match.groups["text2"]
       const percentSection = {
         percent,
         text: innerText,
@@ -599,7 +647,9 @@ export const evaluatePlaceholders = (text: string) => {
     }
   }
 
-  text = finalTextParts.map((s) => (typeof s === "string" ? s : s.text)).join("")
+  text = finalTextParts
+    .map((s) => (typeof s === "string" ? s : s.text))
+    .join("")
 
   return {
     text,
@@ -625,9 +675,13 @@ export const testTable = async (table: RegisteredTable) => {
       chalk.whiteBright(r.toString()) + ": " + chalk.white(result.row.text),
     )
     const related = await evaluateRowMeta(result.row, table, 0)
+    let displayedTitle: string | null = null
     for (const refResults of related) {
-      console.log(chalk.blueBright("  " + refResults[0].table.title + ": "))
       for (const refResult of refResults) {
+        if (refResult.table.title !== displayedTitle) {
+          console.log(chalk.blueBright("  " + refResult.table.title + ": "))
+          displayedTitle = refResult.table.title
+        }
         console.log("  - " + refResult.row.text)
       }
     }

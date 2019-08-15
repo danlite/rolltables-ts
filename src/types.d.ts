@@ -15,7 +15,13 @@ export type Die = DieStructure
 export interface TableRow {
   range: number[] | number
   text: string
-  meta: TableRef[]
+  meta?: TableRef[]
+}
+
+export interface MultiDimensionalTableRow {
+  range: string
+  text: string
+  meta?: TableRef[]
 }
 
 interface PlaceholderEvaluationResults {
@@ -24,7 +30,7 @@ interface PlaceholderEvaluationResults {
 
 type EvaluatedTableRow = TableRow & {
   evaluation: PlaceholderEvaluationResults
-  evaluatedMeta?: RollResult[][],
+  evaluatedMeta?: RollResult[][]
 }
 
 export interface Table {
@@ -33,6 +39,15 @@ export interface Table {
   title: string
   extraResults?: string
   autoEvaluate?: boolean
+}
+
+export interface MultiDimensionalTable {
+  dice: Die[]
+  rows: MultiDimensionalTableRow[]
+  title: string
+  extraResults?: string
+  autoEvaluate?: boolean
+  dimensions: string[]
 }
 
 interface TableRef {
@@ -56,7 +71,7 @@ interface RollResult {
   row: EvaluatedTableRow
   extraResults?: {
     text: string
-    results: PlaceholderEvaluationResults,
+    results: PlaceholderEvaluationResults
   }
   evaluatedTables?: RollResult[][]
 }

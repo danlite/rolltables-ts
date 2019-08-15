@@ -10,11 +10,16 @@ import * as tables from "./tables"
 import {RollResult, TableBundle} from "./types"
 
 const hoard = async () => {
-  const table = await tables.loadTable("dmg/treasure/hoard-1-loot")
+  const table = await tables.getRollable("dmg/treasure/hoard-1-loot")
+  if (!tables.isTable(table)) return
   let result
   do {
     result = await rollOnTable(table)
-  } while (!result.row || result.row.meta.length === 0)
+  } while (
+    !result.row ||
+    result.row.meta === undefined ||
+    result.row.meta.length === 0
+  )
 
   if (result.extraResults) {
     console.log(result.extraResults.text)
@@ -41,7 +46,8 @@ const hoard = async () => {
 
 const cantrip = async () => {
   console.log("Cantrip:")
-  const spells = await tables.loadTable("spells/level/0")
+  const spells = await tables.getRollable("spells/level/0")
+  if (!tables.isTable(spells)) return
   const result = await rollOnTable(spells)
   console.log(result.row.text)
   console.log("\n")
@@ -49,7 +55,8 @@ const cantrip = async () => {
 
 const sylvan = async () => {
   console.log("Sylvan forest encounter:")
-  const table = await tables.loadTable("dmg/sylvan-forest")
+  const table = await tables.getRollable("dmg/sylvan-forest")
+  if (!tables.isTable(table)) return
   const result = await rollOnTable(table) // , sylvan.dice, 8)
   console.log(result.row.text)
   console.log("\n")
@@ -57,7 +64,8 @@ const sylvan = async () => {
 
 const villain = async () => {
   console.log("Villain objective:")
-  const table = await tables.loadTable("dmg/villains/objective")
+  const table = await tables.getRollable("dmg/villains/objective")
+  if (!tables.isTable(table)) return
   // console.log(table)
   const result = await rollOnTable(table)
   console.log(result.row.text)
@@ -174,7 +182,8 @@ const showTableResults = (tableResults: RollResult[]) => {
 }
 
 const dwarves = async () => {
-  const table = await tables.loadTable("mtof/dwarves/group/composition")
+  const table = await tables.getRollable("mtof/dwarves/group/composition")
+  if (!tables.isTable(table)) return
   const result = await rollOnTable(table)
   console.log(result.extraResults && result.extraResults.text)
   console.log(result.row.text)
@@ -237,9 +246,10 @@ const rollFamilyHome = async () => {
 }
 
 const charlatan = async () => {
-  const bundle = await tables.loadTableBundle(
+  const bundle = await tables.getRollable(
     "/phb/backgrounds/charlatan/charlatan.bundle",
   )
+  if (!tables.isBundle(bundle)) return
   console.log(chalk.redBright(bundle.title || ""))
   const results = await rollBundleOrTable(bundle)
   showMetaTableResults(results)
@@ -249,9 +259,10 @@ const backgrounds = async () => {
   const multiBundle = await tables.loadMultiBundle(
     "/phb/backgrounds/backgrounds",
   )
-  const bundle = await tables.loadTableBundle(
+  const bundle = await tables.getRollable(
     "/phb/backgrounds/guild-artisan/guild-artisan",
   )
+  if (!tables.isBundle(bundle)) return
   // console.log(JSON.stringify(multiBundle, undefined, 2))
   console.log(
     chalk.redBright(
@@ -268,7 +279,7 @@ const backgrounds = async () => {
 if (require.main === module) {
   Promise.resolve()
     .then(tables.loadAllTables)
-    .then(tables.tablesInDirectory("/homebrew"))
+    // .then(tables.tablesInDirectory('/skt'))
     .then(testAllTables)
   // .then(charlatan)
   // .then(backgrounds)

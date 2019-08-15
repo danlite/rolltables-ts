@@ -4,7 +4,7 @@ import * as inquirer from "inquirer"
 import * as inquirerAutocomplete from "inquirer-autocomplete-prompt"
 import {showMetaTableResults} from "."
 import {evaluateRollResultTables, rollBundleOrTable} from "./rolltables"
-import {getRegistryKeys, loadAllTables, loadRollable} from "./tables"
+import {getRegistryKeys, loadAllTables, getRollable} from "./tables"
 import {RollResult} from "./types"
 
 async function main() {
@@ -35,7 +35,12 @@ async function main() {
   const processResults = async (rollResults: RollResult[][]) => {
     const resultsToExpand = rollResults
       .reduce((sum, tableResults) => sum.concat(tableResults), [])
-      .filter((r) => r.row.evaluatedMeta === undefined && r.row.meta.length > 0)
+      .filter(
+        (r) =>
+          r.row.evaluatedMeta === undefined &&
+          r.row.meta &&
+          r.row.meta.length > 0,
+      )
     let otherResults: null | RollResult[][] = null
 
     if (resultsToExpand.length > 0) {
@@ -59,7 +64,7 @@ async function main() {
 
   while (true) {
     const results = await promptTableSearch()
-      .then((answers) => loadRollable(answers.table))
+      .then((answers) => getRollable(answers.table))
       .then((b) => rollBundleOrTable(b))
 
     await processResults(results)

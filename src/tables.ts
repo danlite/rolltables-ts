@@ -2,11 +2,16 @@ import chalk from "chalk"
 import * as fs from "fs"
 import {basename, dirname, extname, resolve} from "path"
 import * as YAML from "yaml"
-import {formatDice, prepareTable} from "./rolltables"
-import {Table, TableBundle, TableRef} from "./types"
+import {
+  formatDice,
+  prepareTable,
+  prepareMultiDimensionalTable,
+  getDimensionIdentifiers,
+} from "./rolltables"
+import {Table, TableBundle, TableRef, MultiDimensionalTable} from "./types"
 
 const DEBUG = false
-const TABLE_ROOT = "/Users/dan/rolltables-private/tables"
+const TABLE_ROOT = "/Users/dan/workspace/rolltables-private/tables"
 const YAML_EXT = ".yml"
 
 interface Registered {
@@ -14,15 +19,36 @@ interface Registered {
 }
 
 export type RegisteredTable = Table & Registered
+export type RegisteredMultiDimensionalTable = MultiDimensionalTable & Registered
 export type RegisteredBundle = TableBundle & Registered
 export type RegisteredRollable = RegisteredTable | RegisteredBundle
 
-export const isBundle = (obj: RegisteredRollable): obj is RegisteredBundle => {
-  return "tables" in obj && obj.tables !== undefined
+export const isBundle = (
+  obj: RegisteredRollable | null,
+): obj is RegisteredBundle => {
+  return obj !== null && "tables" in obj && obj.tables !== undefined
 }
 
-export const isTable = (obj: RegisteredRollable): obj is RegisteredTable => {
-  return "rows" in obj && obj.rows !== undefined
+export const isTable = (
+  obj: RegisteredRollable | null,
+): obj is RegisteredTable => {
+  return (
+    obj !== null &&
+    "rows" in obj &&
+    obj.rows !== undefined &&
+    !("dimensions" in obj)
+  )
+}
+
+export const isMultiDimensionalTable = (
+  obj: RegisteredRollable | RegisteredMultiDimensionalTable | null,
+): obj is RegisteredMultiDimensionalTable => {
+  return (
+    obj !== null &&
+    "rows" in obj &&
+    obj.rows !== undefined &&
+    "dimensions" in obj
+  )
 }
 
 const registry: {[path: string]: RegisteredRollable} = {}
@@ -43,28 +69,6 @@ export const showRegistry = () => {
 export const getRegistry = () => registry
 export const getRegistryKeys = () => Object.keys(registry)
 
-export const loadTable = async (
-  path: string,
-  relativeTo?: RegisteredRollable | string,
-) => {
-  const rollable = await loadRollable(path, relativeTo)
-  if (!isTable(rollable)) {
-    throw new Error("not a table!")
-  }
-  return rollable
-}
-
-export const loadTableBundle = async (
-  path: string,
-  relativeTo?: RegisteredRollable | string,
-) => {
-  const rollable = await loadRollable(path, relativeTo)
-  if (!isBundle(rollable)) {
-    throw new Error("not a bundle!")
-  }
-  return rollable
-}
-
 export const loadMultiBundle = async (identifier: string) => {
   const contents = fs.readFileSync(
     resolve(TABLE_ROOT, "." + identifier + ".multibundle" + YAML_EXT),
@@ -74,7 +78,7 @@ export const loadMultiBundle = async (identifier: string) => {
   )
 
   const yml: {
-    bundles: {[key: string]: {relative?: string; bundle: TableBundle}},
+    bundles: {[key: string]: {relative?: string; bundle: TableBundle}}
   } = YAML.parse(contents, {merge: true})
 
   const output: {[key: string]: RegisteredRollable} = {}
@@ -91,7 +95,7 @@ export const loadMultiBundle = async (identifier: string) => {
   return output
 }
 
-export const loadRollable = async (
+export const getRollable = async (
   path: string,
   relativeTo?: RegisteredRollable | string,
 ) => {
@@ -112,39 +116,12 @@ export const loadRollable = async (
   if (path in registry) {
     return registry[path]
   }
+
   console.debug(`loading ${path}`)
-  const localPath = "." + path
-  let table
-  try {
-    table = await importTable(localPath)
-  } catch (e) {
-    table = importTableFromYAML(localPath)
-  }
-  return registerRollable(table, path)
-}
-
-const importTable = async (path: string) => (await import(path)).default
-
-const importTableFromYAML = (path: string) => {
-  // console.log(resolve(__dirname, path + YAML_EXT))
-  const contents = fs.readFileSync(resolve(TABLE_ROOT, path + YAML_EXT), {
-    encoding: "utf8",
-  })
-  // console.log(contents)
-  const yml = YAML.parse(contents)
-  // console.log(yml)
-
-  let rollable: Table | TableBundle
-  if (isBundle(yml)) {
-    rollable = yml
-  } else if (isTable(yml)) {
-    rollable = prepareTable(yml)
-  } else {
-    // throw new Error("not proper format for table/bundle")
-    return null
-  }
-
-  return rollable
+  // const localPath = '.' + path
+  const registered = registerTableFromYaml(path)
+  if (Array.isArray(registered)) throw "not a single rollable"
+  return registered
 }
 
 export const makeTableRef = (
@@ -154,6 +131,26 @@ export const makeTableRef = (
   path,
   rollCount: count === undefined ? 1 : count,
 })
+
+const registerRollables = (
+  tables: Array<Table | TableBundle>,
+  identifier: string,
+  identifierSuffixes?: string[],
+): RegisteredRollable[] => {
+  if (
+    tables.length > 1 &&
+    (identifierSuffixes === undefined ||
+      identifierSuffixes.length < tables.length)
+  )
+    throw new Error("must provide identifier suffixes for each rollable")
+
+  return tables.map((table, index) => {
+    const fullIdentifier = identifierSuffixes
+      ? identifier + "/" + identifierSuffixes[index]
+      : identifier
+    return registerRollable(table, fullIdentifier)
+  })
+}
 
 const registerRollable = (
   table: Table | TableBundle,
@@ -176,6 +173,7 @@ const registerTableFromYaml = (filePath: string) => {
     identifierPath += "/"
   }
   const identifier = identifierPath + basename(filePath, YAML_EXT)
+  let identifierSuffixes: string[] | null = null
   const contents = fs.readFileSync(filePath, {
     encoding: "utf8",
   })
@@ -186,9 +184,16 @@ const registerTableFromYaml = (filePath: string) => {
     rollable = yml
   } else if (isTable(yml)) {
     rollable = prepareTable(yml)
+  } else if (isMultiDimensionalTable(yml)) {
+    return registerRollables(
+      prepareMultiDimensionalTable(yml),
+      identifier,
+      getDimensionIdentifiers(yml),
+    )
   } else {
-    // throw new Error("not proper format for table/bundle")
-    return null
+    console.log(yml)
+    throw new Error("not proper format for table/bundle")
+    // return null
   }
 
   return registerRollable(rollable, identifier)
