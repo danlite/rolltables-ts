@@ -528,11 +528,15 @@ export const evaluatePlaceholders = (text: string) => {
 
   // [[text (50%)]]
   while (true) {
-    match = text.match(/\[\[([^\]]+ \((\d+)%\))\]\]/)
-    if (match) {
-      const percent = parseInteger(match[2])
+    match = text.match(
+      /\[\[(?<text1>[^\]]+ \(?(?<number1>\d+)(?:%| percent)\)?)\]\]|\[\[(?<text2>\(?(?<number2>\d+)(?:%| percent)\)? [^\]]+)\]\]/,
+    )
+    if (match && match.groups) {
+      const percent = parseInteger(
+        match.groups['number1'] || match.groups['number2'],
+      )
       const index = match.index as number
-      const innerText = match[1]
+      const innerText = match.groups['text1'] || match.groups['text2']
       const percentSection = {
         percent,
         text: innerText,
