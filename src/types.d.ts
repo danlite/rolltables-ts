@@ -30,7 +30,7 @@ interface PlaceholderEvaluationResults {
 
 type EvaluatedTableRow = TableRow & {
   evaluation: PlaceholderEvaluationResults
-  evaluatedMeta?: RollResult[][]
+  evaluatedMeta?: RollResult[][],
 }
 
 export interface Table {
@@ -72,7 +72,7 @@ interface RollResult {
   row: EvaluatedTableRow
   extraResults?: {
     text: string
-    results: PlaceholderEvaluationResults
+    results: PlaceholderEvaluationResults,
   }
   evaluatedTables?: RollResult[][]
 }

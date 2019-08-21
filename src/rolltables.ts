@@ -1,8 +1,8 @@
 import chalk from "chalk"
 import {
+  getRollable,
   isBundle,
   isTable,
-  getRollable,
   RegisteredBundle,
   RegisteredRollable,
   RegisteredTable,
@@ -11,6 +11,8 @@ import {
   DiceRollResult,
   Die,
   EvaluatedTableRow,
+  MultiDimensionalTable,
+  MultiDimensionalTableRow,
   PlaceholderEvaluationResults,
   RollResult,
   Table,
@@ -19,8 +21,6 @@ import {
   TableRollOptions,
   TableRow,
   TableRowContext,
-  MultiDimensionalTableRow,
-  MultiDimensionalTable,
 } from "./types"
 
 const parseInteger = (s: string) => parseInt(s, 10)
@@ -106,7 +106,9 @@ export const parseRollTableRows = (
     } else {
       // Add this "meta" item to the previous row's `meta` array
       const prev = ret[ret.length - 1]
-      if (!prev.meta) prev.meta = []
+      if (!prev.meta) {
+        prev.meta = []
+      }
       prev.meta.push(item)
     }
   }
@@ -429,14 +431,16 @@ export const getDimensionIdentifiers = (
 export const prepareMultiDimensionalTable = (
   input: {
     dice: Die[] | string
-    rows: MultiDimensionalTableRow[]
+    rows: MultiDimensionalTableRow[],
   } & Pick<
     MultiDimensionalTable,
     "title" | "extraResults" | "autoEvaluate" | "dimensions"
   >,
 ): Table[] => {
   const {dimensions, extraResults, rows, dice, title, autoEvaluate} = input
-  if (!dimensions) throw "no dimensions provided"
+  if (!dimensions) {
+    throw new Error("no dimensions provided")
+  }
   return dimensions.map(
     (dimTitle, dimIndex): Table => {
       return prepareTable({
@@ -448,14 +452,16 @@ export const prepareMultiDimensionalTable = (
           .map(
             (row): TableRow | null => {
               const range = parseRange(row.range.split("/")[dimIndex])
-              if (range === null) return null
+              if (range === null) {
+                return null
+              }
               return {
                 ...row,
                 range,
               }
             },
           )
-          .filter(<TableRow>(t: TableRow | null): t is TableRow => t !== null),
+          .filter((t: TableRow | null): t is TableRow => t !== null),
       })
     },
   )
@@ -464,7 +470,7 @@ export const prepareMultiDimensionalTable = (
 export const prepareTable = (
   input: {
     dice?: Die[] | string
-    rows: TableRow[] | string | Array<string | TableRef>
+    rows: TableRow[] | string | Array<string | TableRef>,
   } & Pick<Table, "title" | "extraResults" | "autoEvaluate">,
 ): Table => {
   const {title, extraResults, rows} = input
@@ -500,7 +506,7 @@ export const prepareTable = (
 
 export const prepareSimpleTable = (
   input: {
-    rows: string
+    rows: string,
   } & Pick<Table, "title" | "extraResults" | "autoEvaluate">,
 ): Table => {
   const {title, extraResults, rows, autoEvaluate} = input
@@ -584,11 +590,9 @@ export const evaluatePlaceholders = (text: string) => {
       /\[\[(?<text1>[^\]]+ \(?(?<number1>\d+)(?:%| percent)\)?)\]\]|\[\[(?<text2>\(?(?<number2>\d+)(?:%| percent)\)? [^\]]+)\]\]/,
     )
     if (match && match.groups) {
-      const percent = parseInteger(
-        match.groups["number1"] || match.groups["number2"],
-      )
+      const percent = parseInteger(match.groups.number1 || match.groups.number2)
       const index = match.index as number
-      const innerText = match.groups["text1"] || match.groups["text2"]
+      const innerText = match.groups.text1 || match.groups.text2
       const percentSection = {
         percent,
         text: innerText,

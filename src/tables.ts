@@ -4,11 +4,11 @@ import {basename, dirname, extname, resolve} from "path"
 import * as YAML from "yaml"
 import {
   formatDice,
-  prepareTable,
-  prepareMultiDimensionalTable,
   getDimensionIdentifiers,
+  prepareMultiDimensionalTable,
+  prepareTable,
 } from "./rolltables"
-import {Table, TableBundle, TableRef, MultiDimensionalTable} from "./types"
+import {MultiDimensionalTable, Table, TableBundle, TableRef} from "./types"
 
 const DEBUG = false
 const TABLE_ROOT = "/Users/dan/workspace/rolltables-private/tables"
@@ -78,7 +78,7 @@ export const loadMultiBundle = async (identifier: string) => {
   )
 
   const yml: {
-    bundles: {[key: string]: {relative?: string; bundle: TableBundle}}
+    bundles: {[key: string]: {relative?: string; bundle: TableBundle}},
   } = YAML.parse(contents, {merge: true})
 
   const output: {[key: string]: RegisteredRollable} = {}
@@ -120,7 +120,9 @@ export const getRollable = async (
   console.debug(`loading ${path}`)
   // const localPath = '.' + path
   const registered = registerTableFromYaml(path)
-  if (Array.isArray(registered)) throw "not a single rollable"
+  if (Array.isArray(registered)) {
+    throw new Error("not a single rollable")
+  }
   return registered
 }
 
@@ -141,8 +143,9 @@ const registerRollables = (
     tables.length > 1 &&
     (identifierSuffixes === undefined ||
       identifierSuffixes.length < tables.length)
-  )
+  ) {
     throw new Error("must provide identifier suffixes for each rollable")
+  }
 
   return tables.map((table, index) => {
     const fullIdentifier = identifierSuffixes
@@ -173,7 +176,7 @@ const registerTableFromYaml = (filePath: string) => {
     identifierPath += "/"
   }
   const identifier = identifierPath + basename(filePath, YAML_EXT)
-  let identifierSuffixes: string[] | null = null
+  const identifierSuffixes: string[] | null = null
   const contents = fs.readFileSync(filePath, {
     encoding: "utf8",
   })
