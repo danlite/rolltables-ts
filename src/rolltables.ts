@@ -16,6 +16,7 @@ import {
   Table,
   TableBundle,
   TableRef,
+  TableRollOptions,
   TableRow,
   TableRowContext,
   MultiDimensionalTableRow,
@@ -251,13 +252,7 @@ const rowForRoll = (table: RegisteredTable, roll: number) => {
 
 export const rollOnTable = async (
   table: RegisteredTable,
-  opts: {
-    dice?: Die[]
-    total?: number
-    modifier?: number
-    reroll?: number[]
-    currentDepth?: number
-  } = {},
+  opts: TableRollOptions = {},
 ): Promise<RollResult> => {
   let {dice, total, currentDepth} = opts
   const {modifier, reroll} = opts
@@ -267,7 +262,6 @@ export const rollOnTable = async (
   if (reroll && total !== undefined && reroll.includes(total)) {
     total = undefined
   }
-  // TODO: support `unique` and `ignore` parameters
   if (!dice) {
     dice = table.dice
   }
@@ -358,6 +352,7 @@ const rollTableRef = async (
 ) => {
   let results: RollResult[] = []
   const otherRollable = await getRollable(tableRef.path, relativeToTable)
+
   const rawCount = tableRef.rollCount
   const rollCount =
     typeof rawCount === "number"
@@ -365,6 +360,7 @@ const rollTableRef = async (
       : typeof rawCount === "string" && rawCount in context
       ? context[rawCount]
       : 1
+
   const rawModifier = tableRef.modifier
   const modifier =
     typeof rawModifier === "number"
@@ -372,23 +368,31 @@ const rollTableRef = async (
       : typeof rawModifier === "string" && rawModifier in context
       ? context[rawModifier]
       : 0
+
   const reroll =
     typeof tableRef.ignore === "number"
       ? [tableRef.ignore]
       : tableRef.ignore || []
+
+  const rollOptions: TableRollOptions = {currentDepth}
+  if (tableRef.dice) {
+    rollOptions.dice = parseDice(tableRef.dice)
+  }
+
   for (let i = 0; i < rollCount; i++) {
     if (isBundle(otherRollable)) {
       results = results.concat(
-        ...(await rollBundleOrTable(otherRollable, currentDepth)),
+        ...(await rollBundleOrTable(otherRollable, rollOptions)),
       )
     } else if (otherRollable) {
       const result = await rollOnTable(otherRollable, {
+        ...rollOptions,
         modifier,
         reroll,
-        currentDepth,
       })
       results.push(result)
       if (tableRef.unique) {
+        // TODO: reroll.push(<all numbers that match `result`>)
         reroll.push(result.total)
       }
     }
@@ -690,8 +694,9 @@ export const testTable = async (table: RegisteredTable) => {
 
 export const rollBundleOrTable = async (
   rollable: RegisteredBundle | RegisteredTable,
-  currentDepth: number = 0,
+  opts: TableRollOptions = {},
 ) => {
+  const currentDepth = opts.currentDepth || 0
   let context: TableRowContext = {}
   const tableResults: RollResult[][] = []
   if (isBundle(rollable)) {

@@ -53,6 +53,7 @@ export interface MultiDimensionalTable {
 interface TableRef {
   path: string // relative ("./gems" or "../../phb/classes") or absolute ("dmg/dungeons/location")
   rollCount?: number | string // constant number or key from context
+  dice?: string
   unique?: boolean
   ignore?: number | number[]
   modifier?: number | string
@@ -80,4 +81,12 @@ interface TableBundle {
   identifier: string
   tables: TableRef[]
   title?: string
+}
+
+interface TableRollOptions {
+  dice?: Die[]
+  total?: number
+  modifier?: number
+  reroll?: number[]
+  currentDepth?: number
 }
