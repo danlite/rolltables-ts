@@ -52,6 +52,7 @@ export interface MultiDimensionalTable {
 
 interface TableRef {
   path: string // relative ("./gems" or "../../phb/classes") or absolute ("dmg/dungeons/location")
+  title?: string
   rollCount?: number | string // constant number or key from context
   dice?: string
   unique?: boolean

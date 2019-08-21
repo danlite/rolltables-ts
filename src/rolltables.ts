@@ -387,7 +387,11 @@ const rollTableRef = async (
         ...(await rollBundleOrTable(otherRollable, rollOptions)),
       )
     } else if (otherRollable) {
-      const result = await rollOnTable(otherRollable, {
+      const customizedRollable = {...otherRollable}
+      if (tableRef.title) {
+        customizedRollable.title = tableRef.title
+      }
+      const result = await rollOnTable(customizedRollable, {
         ...rollOptions,
         modifier,
         reroll,
