@@ -22,7 +22,9 @@
     "typescript": "^3.5.3"
   },
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "cli": "ts-node ./src/cli.ts",
+    "debug": "ts-node ./src/index.ts"
   },
   "author": "",
   "license": "ISC"
