@@ -10,6 +10,10 @@ interface TableRowContext {
   [k: string]: number
 }
 
+interface TableBundleContext extends TableRowContext {
+  $previousRoll: number
+}
+
 export type Die = DieStructure
 
 export interface TableRow {
@@ -56,7 +60,7 @@ interface TableRef {
   rollCount?: number | string // constant number or key from context
   dice?: string
   unique?: boolean
-  ignore?: number | number[]
+  ignore?: number | string | Array<number | string>
   modifier?: number | string
 }
 type RowMetaFunction = (t: TableRowContext) => Promise<RollResult[]>

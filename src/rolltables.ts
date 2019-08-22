@@ -21,6 +21,7 @@ import {
   TableRollOptions,
   TableRow,
   TableRowContext,
+  TableBundleContext,
 } from "./types"
 
 const parseInteger = (s: string) => parseInt(s, 10)
@@ -354,6 +355,20 @@ const contextFromEvaluatedRow = (row: EvaluatedTableRow): TableRowContext => {
   return context
 }
 
+const valueInContext = (
+  value: string | number | undefined,
+  context: TableRowContext,
+  defaultValue = 0,
+): number => {
+  if (typeof value === "number") {
+    return value
+  }
+  if (typeof value === "string" && value in context) {
+    return context[value] || defaultValue
+  }
+  return defaultValue
+}
+
 const rollTableRef = async (
   tableRef: TableRef,
   context: TableRowContext,
@@ -362,29 +377,11 @@ const rollTableRef = async (
 ) => {
   let results: RollResult[] = []
   const otherRollable = await getRollable(tableRef.path, relativeToTable)
-
-  const rawCount = tableRef.rollCount
-  const rollCount =
-    typeof rawCount === "number"
-      ? rawCount
-      : typeof rawCount === "string" && rawCount in context
-      ? context[rawCount]
-      : 1
-
-  const rawModifier = tableRef.modifier
-  const modifier =
-    typeof rawModifier === "number"
-      ? rawModifier
-      : typeof rawModifier === "string" && rawModifier in context
-      ? context[rawModifier]
-      : 0
-
-  const reroll =
-    typeof tableRef.ignore === "number"
-      ? [tableRef.ignore]
-      : tableRef.ignore
-      ? [...tableRef.ignore]
-      : []
+  const rollCount = valueInContext(tableRef.rollCount, context, 1)
+  const modifier = valueInContext(tableRef.modifier, context, 0)
+  const reroll: number[] = Array.isArray(tableRef.ignore)
+    ? tableRef.ignore.map((i): number => valueInContext(i, context))
+    : [valueInContext(tableRef.ignore, context, 99999)]
 
   const rollOptions: TableRollOptions = {currentDepth}
   if (tableRef.dice) {
@@ -714,7 +711,7 @@ export const rollBundleOrTable = async (
   opts: TableRollOptions = {},
 ) => {
   const currentDepth = opts.currentDepth || 0
-  let context: TableRowContext = {}
+  let context: TableBundleContext = {$previousRoll: 0}
   const tableResults: RollResult[][] = []
   if (isBundle(rollable)) {
     for (const tableRef of rollable.tables) {
@@ -727,7 +724,9 @@ export const rollBundleOrTable = async (
       tableResults.push(results)
       for (const result of results) {
         // TODO: figure out how/why we'd merge the contexts from several rolls of the same table
-        context = Object.assign(context, contextFromEvaluatedRow(result.row))
+        context = Object.assign(context, contextFromEvaluatedRow(result.row), {
+          $previousRoll: result.total,
+        })
       }
     }
   } else {
