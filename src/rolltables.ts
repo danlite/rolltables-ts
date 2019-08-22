@@ -149,6 +149,14 @@ class Range implements Range {
     return new Range(this.min + range.min, this.max + range.max)
   }
 
+  public members() {
+    const members: number[] = []
+    for (let i = this.min; i <= this.max; i++) {
+      members.push(i)
+    }
+    return members
+  }
+
   public toString() {
     return `[${this.min},${this.max}]`
   }
@@ -374,7 +382,9 @@ const rollTableRef = async (
   const reroll =
     typeof tableRef.ignore === "number"
       ? [tableRef.ignore]
-      : tableRef.ignore || []
+      : tableRef.ignore
+      ? [...tableRef.ignore]
+      : []
 
   const rollOptions: TableRollOptions = {currentDepth}
   if (tableRef.dice) {
@@ -398,8 +408,7 @@ const rollTableRef = async (
       })
       results.push(result)
       if (tableRef.unique) {
-        // TODO: reroll.push(<all numbers that match `result`>)
-        reroll.push(result.total)
+        reroll.push(...rangeForResultOnTable(result.total, otherRollable))
       }
     }
   }
@@ -726,4 +735,20 @@ export const rollBundleOrTable = async (
     tableResults.push([results])
   }
   return tableResults
+}
+
+const rangeForResultOnTable = (
+  result: number,
+  table: RegisteredTable,
+): number[] => {
+  const row = rowForRoll(table, result)
+  if (row) {
+    const range =
+      typeof row.range === "number"
+        ? new Range(row.range)
+        : new Range(row.range[0], row.range[1])
+
+    return range.members()
+  }
+  return []
 }
