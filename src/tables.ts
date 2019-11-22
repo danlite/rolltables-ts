@@ -78,7 +78,7 @@ export const loadMultiBundle = async (identifier: string) => {
   )
 
   const yml: {
-    bundles: {[key: string]: {relative?: string; bundle: TableBundle}},
+    bundles: {[key: string]: {relative?: string; bundle: TableBundle}}
   } = YAML.parse(contents, {merge: true})
 
   const output: {[key: string]: RegisteredRollable} = {}

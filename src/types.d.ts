@@ -1,9 +1,15 @@
 import {RegisteredTable} from "./tables"
 
+export interface Drop {
+  type: "highest" | "lowest"
+  number: number
+}
+
 export interface DieStructure {
   count: number
   sides: number
   multiplier: number
+  drop?: Drop
 }
 
 interface TableRowContext {
@@ -33,14 +39,16 @@ interface PlaceholderEvaluationResults {
 }
 
 type EvaluatedTableRow = TableRow & {
+  roll: number
   evaluation: PlaceholderEvaluationResults
-  evaluatedMeta?: RollResult[][],
+  evaluatedMeta?: RollResult[][]
 }
 
 export interface Table {
   dice: Die[]
   rows: TableRow[]
   title: string
+  inputs?: {[key: string]: TableRef}
   extraResults?: string
   autoEvaluate?: boolean
 }
@@ -49,6 +57,7 @@ export interface MultiDimensionalTable {
   dice: Die[]
   rows: MultiDimensionalTableRow[]
   title: string
+  inputs?: {[key: string]: TableRef}
   extraResults?: string
   autoEvaluate?: boolean
   dimensions: string[]
@@ -58,6 +67,7 @@ interface TableRef {
   path: string // relative ("./gems" or "../../phb/classes") or absolute ("dmg/dungeons/location")
   title?: string
   rollCount?: number | string // constant number or key from context
+  total?: number | string // constant number or key from context
   dice?: string
   unique?: boolean
   ignore?: number | string | Array<number | string>
@@ -77,7 +87,7 @@ interface RollResult {
   row: EvaluatedTableRow
   extraResults?: {
     text: string
-    results: PlaceholderEvaluationResults,
+    results: PlaceholderEvaluationResults
   }
   evaluatedTables?: RollResult[][]
 }

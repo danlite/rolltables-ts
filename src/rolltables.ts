@@ -2,40 +2,71 @@ import chalk from "chalk"
 import {
   getRollable,
   isBundle,
-  isTable,
   RegisteredBundle,
-  RegisteredRollable,
   RegisteredTable,
 } from "./tables"
 import {
   DiceRollResult,
   Die,
+  Drop,
   EvaluatedTableRow,
   MultiDimensionalTable,
   MultiDimensionalTableRow,
   PlaceholderEvaluationResults,
   RollResult,
   Table,
-  TableBundle,
+  TableBundleContext,
   TableRef,
   TableRollOptions,
   TableRow,
   TableRowContext,
-  TableBundleContext,
 } from "./types"
 
 const parseInteger = (s: string) => parseInt(s, 10)
 const parseRollInteger = (s: string) => (s === "00" ? 100 : parseInteger(s))
+const parseKeepDrop = (s: string | undefined, numDice: number) => {
+  const res: Drop = {
+    type: "lowest",
+    number: 0,
+  }
+  const match = s ? s.match(/([kd])([hl])?(\d+)/) : null
+  if (!match) {
+    return res
+  }
+
+  res.number = parseInt(match[3], 10)
+
+  const action = match[1] as "k" | "d"
+  let cohort: "h" | "l" =
+    (match[2] as "h" | "l" | undefined) || (action === "k" ? "h" : "l")
+
+  if (action === "k") {
+    cohort = cohort === "h" ? "l" : "h"
+    res.number = Math.max(0, numDice - res.number)
+  }
+  res.type = cohort === "l" ? "lowest" : "highest"
+
+  return res
+}
 
 const parseDie = (text: string): Die | null => {
-  const match = text.match(/(-)?(\d*)d(\d+)(?:\*(-?\d+))?/)
+  // Optional negative: (-)?
+  // Optional number of dice: (\d*)
+  // The letter D: d
+  // Die sides: (\d+)
+  // Keep/drop: ([kd][hl]?\d+)?
+  // Optional multiplier: (?:\*(-?\d+))?
+  const match = text.match(/(-)?(\d*)d(\d+)([kd][hl]?\d+)?(?:\*(-?\d+))?/)
   if (match) {
     const multiplierFromSign = match[1] ? -1 : 1
-    const extraMultiplier = match[4] ? parseInteger(match[4]) : 1
+    const count = parseInteger(match[2]) || 1
+    const keepDrop = parseKeepDrop(match[4], count)
+    const extraMultiplier = match[5] ? parseInteger(match[5]) : 1
     return {
-      count: parseInteger(match[2]) || 1,
+      count,
       multiplier: multiplierFromSign * extraMultiplier,
       sides: parseInteger(match[3]),
+      drop: keepDrop.number ? keepDrop : undefined,
     }
   }
 
@@ -167,7 +198,9 @@ const getDieRange = (die: Die): Range => {
   if (typeof die === "number") {
     return new Range(die)
   } else {
-    const result: Range = new Range(die.count, die.count * die.sides)
+    const dropped = die.drop ? die.drop.number : 0
+    const count = die.count - dropped
+    const result: Range = new Range(count, count * die.sides)
     return result.multiply(die.multiplier)
   }
 }
@@ -227,16 +260,30 @@ const rollDice = (dice: Die[]): DiceRollResult => {
   const rolls = dice.map((die) => {
     const dieRolls = []
     if (typeof die === "number") {
-      total += die
       dieRolls.push(die)
     } else {
       for (let i = 0; i < die.count; i++) {
         let roll = Math.floor(Math.random() * die.sides) + 1
         roll *= die.multiplier
-        total += roll
         dieRolls.push(roll)
       }
     }
+
+    if (die.drop) {
+      const limit =
+        die.drop.type === "highest" ? Number.MIN_VALUE : Number.MAX_VALUE
+      const comparator = die.drop.type === "highest" ? Math.max : Math.min
+
+      for (let i = 0; i < die.drop.number; i++) {
+        const target = dieRolls.reduce(
+          (extreme, n) => comparator(extreme, n),
+          limit,
+        )
+        dieRolls.splice(dieRolls.indexOf(target), 1)
+      }
+    }
+    total += dieRolls.reduce((sum, r) => sum + r, 0)
+
     return dieRolls
   })
 
@@ -283,9 +330,20 @@ export const rollOnTable = async (
   }
   const row = rowForRoll(table, total)
   if (!row) {
-    throw new Error("bad roll!")
+    throw new Error(`bad roll! ${total} on ${table.identifier}`)
   }
-  const evaluatedRow = evaluateRow(row)
+
+  const inputValues: {[key: string]: string} = {}
+  if (table.inputs) {
+    // evaluate inputs
+    for (const key of Object.keys(table.inputs)) {
+      const tableRef = table.inputs[key]
+      const result = await rollTableRef(tableRef, {}, table)
+      inputValues[key] = result[0].row.text
+    }
+  }
+
+  const evaluatedRow = evaluateRow(row, total, inputValues)
   let evaluatedTables: RollResult[][] | undefined
   if (table.autoEvaluate && currentDepth < 10) {
     evaluatedTables = await evaluateRowMeta(
@@ -321,11 +379,20 @@ export const evaluateRollResultTables = async (
   return rollResult.evaluatedTables
 }
 
-const evaluateRow = (row: TableRow): EvaluatedTableRow => {
+const evaluateRow = (
+  row: TableRow,
+  roll: number,
+  inputValues: {[key: string]: string},
+): EvaluatedTableRow => {
   const evaluation = evaluatePlaceholders(row.text)
+  let textWithInputs = evaluation.text
+  for (const key of Object.keys(inputValues)) {
+    textWithInputs = textWithInputs.replace(`[${key}]`, inputValues[key])
+  }
   return {
     ...row,
-    text: evaluation.text,
+    roll,
+    text: textWithInputs,
     evaluation: evaluation.results,
   }
 }
@@ -348,7 +415,7 @@ export const evaluateRowMeta = async (
 }
 
 const contextFromEvaluatedRow = (row: EvaluatedTableRow): TableRowContext => {
-  const context: TableRowContext = {}
+  const context: TableRowContext = {$roll: row.roll}
   for (const identifier of Object.keys(row.evaluation)) {
     context[identifier] = row.evaluation[identifier].result.total
   }
@@ -386,6 +453,9 @@ const rollTableRef = async (
   const rollOptions: TableRollOptions = {currentDepth}
   if (tableRef.dice) {
     rollOptions.dice = parseDice(tableRef.dice)
+  }
+  if (tableRef.total) {
+    rollOptions.total = valueInContext(tableRef.total, context)
   }
 
   for (let i = 0; i < rollCount; i++) {
@@ -441,13 +511,21 @@ export const getDimensionIdentifiers = (
 export const prepareMultiDimensionalTable = (
   input: {
     dice: Die[] | string
-    rows: MultiDimensionalTableRow[],
+    rows: MultiDimensionalTableRow[]
   } & Pick<
     MultiDimensionalTable,
-    "title" | "extraResults" | "autoEvaluate" | "dimensions"
+    "title" | "extraResults" | "autoEvaluate" | "dimensions" | "inputs"
   >,
 ): Table[] => {
-  const {dimensions, extraResults, rows, dice, title, autoEvaluate} = input
+  const {
+    dimensions,
+    extraResults,
+    rows,
+    dice,
+    title,
+    autoEvaluate,
+    inputs,
+  } = input
   if (!dimensions) {
     throw new Error("no dimensions provided")
   }
@@ -458,19 +536,18 @@ export const prepareMultiDimensionalTable = (
         autoEvaluate,
         dice,
         extraResults,
+        inputs,
         rows: rows
-          .map(
-            (row): TableRow | null => {
-              const range = parseRange(row.range.split("/")[dimIndex])
-              if (range === null) {
-                return null
-              }
-              return {
-                ...row,
-                range,
-              }
-            },
-          )
+          .map((row): TableRow | null => {
+            const range = parseRange(row.range.split("/")[dimIndex])
+            if (range === null) {
+              return null
+            }
+            return {
+              ...row,
+              range,
+            }
+          })
           .filter((t: TableRow | null): t is TableRow => t !== null),
       })
     },
@@ -480,10 +557,10 @@ export const prepareMultiDimensionalTable = (
 export const prepareTable = (
   input: {
     dice?: Die[] | string
-    rows: TableRow[] | string | Array<string | TableRef>,
-  } & Pick<Table, "title" | "extraResults" | "autoEvaluate">,
+    rows: TableRow[] | string | Array<string | TableRef>
+  } & Pick<Table, "title" | "extraResults" | "autoEvaluate" | "inputs">,
 ): Table => {
-  const {title, extraResults, rows} = input
+  const {title, extraResults, rows, inputs} = input
   const autoEvaluate =
     input.autoEvaluate === undefined ? true : input.autoEvaluate
   let {dice} = input
@@ -507,6 +584,7 @@ export const prepareTable = (
     title,
     autoEvaluate,
     extraResults,
+    inputs,
     dice: parsedDice,
     rows: parsedRows,
   }
@@ -516,10 +594,10 @@ export const prepareTable = (
 
 export const prepareSimpleTable = (
   input: {
-    rows: string,
-  } & Pick<Table, "title" | "extraResults" | "autoEvaluate">,
+    rows: string
+  } & Pick<Table, "title" | "extraResults" | "autoEvaluate" | "inputs">,
 ): Table => {
-  const {title, extraResults, rows, autoEvaluate} = input
+  const {title, extraResults, rows, autoEvaluate, inputs} = input
   const parsedRows = rows.split("\n").map((line, i) => ({
     range: i + 1,
     text: line,
@@ -529,6 +607,7 @@ export const prepareSimpleTable = (
     title,
     autoEvaluate,
     extraResults,
+    inputs,
     rows: parsedRows,
     dice: parseDice("d" + parsedRows.length),
   }

@@ -1,5 +1,5 @@
-import {parseDice, evaluatePlaceholders} from '../rolltables'
 import chalk from 'chalk'
+import {evaluatePlaceholders, parseDice} from '../rolltables'
 
 describe('parse dice strings', () => {
   test('implied 1 count', () => {
@@ -59,6 +59,53 @@ describe('parse dice strings', () => {
         count: 0,
         multiplier: 1,
         sides: 1,
+      },
+    ])
+  })
+
+  test('keep/drop', () => {
+    expect(parseDice('4d6k3')).toEqual([
+      {
+        count: 4,
+        multiplier: 1,
+        sides: 6,
+        drop: {
+          type: 'lowest',
+          number: 1,
+        },
+      },
+    ])
+    expect(parseDice('4d6d3')).toEqual([
+      {
+        count: 4,
+        multiplier: 1,
+        sides: 6,
+        drop: {
+          type: 'lowest',
+          number: 3,
+        },
+      },
+    ])
+    expect(parseDice('4d6kl3')).toEqual([
+      {
+        count: 4,
+        multiplier: 1,
+        sides: 6,
+        drop: {
+          type: 'highest',
+          number: 1,
+        },
+      },
+    ])
+    expect(parseDice('4d6dh3')).toEqual([
+      {
+        count: 4,
+        multiplier: 1,
+        sides: 6,
+        drop: {
+          type: 'highest',
+          number: 3,
+        },
       },
     ])
   })
