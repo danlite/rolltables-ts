@@ -333,17 +333,7 @@ export const rollOnTable = async (
     throw new Error(`bad roll! ${total} on ${table.identifier}`)
   }
 
-  const inputValues: {[key: string]: string} = {}
-  if (table.inputs) {
-    // evaluate inputs
-    for (const key of Object.keys(table.inputs)) {
-      const tableRef = table.inputs[key]
-      const result = await rollTableRef(tableRef, {}, table)
-      inputValues[key] = result[0].row.text
-    }
-  }
-
-  const evaluatedRow = evaluateRow(row, total, inputValues)
+  const evaluatedRow = await evaluateRow(row, total, table)
   let evaluatedTables: RollResult[][] | undefined
   if (table.autoEvaluate && currentDepth < 10) {
     evaluatedTables = await evaluateRowMeta(
@@ -379,16 +369,31 @@ export const evaluateRollResultTables = async (
   return rollResult.evaluatedTables
 }
 
-const evaluateRow = (
+const evaluateRow = async (
   row: TableRow,
   roll: number,
-  inputValues: {[key: string]: string},
-): EvaluatedTableRow => {
+  table: RegisteredTable,
+): Promise<EvaluatedTableRow> => {
   const evaluation = evaluatePlaceholders(row.text)
   let textWithInputs = evaluation.text
-  for (const key of Object.keys(inputValues)) {
-    textWithInputs = textWithInputs.replace(`[${key}]`, inputValues[key])
+
+  const inputValues: {[key: string]: string} = {}
+  const requiredInputKeys: string[] = []
+
+  if (table.inputs) {
+    for (const key of Object.keys(table.inputs)) {
+      if (textWithInputs.includes(`[${key}]`)) {
+        requiredInputKeys.push(key)
+      }
+      const tableRef = table.inputs[key]
+      inputValues[key] = (await rollTableRef(tableRef, {}, table))[0].row.text
+    }
+
+    for (const key of Object.keys(table.inputs)) {
+      textWithInputs = textWithInputs.replace(`[${key}]`, inputValues[key])
+    }
   }
+
   return {
     ...row,
     roll,
