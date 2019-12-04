@@ -333,7 +333,8 @@ export const rollOnTable = async (
     throw new Error(`bad roll! ${total} on ${table.identifier}`)
   }
 
-  const evaluatedRow = await evaluateRow(row, total, table)
+  const inputValues: {[key: string]: string[]} = {}
+  const evaluatedRow = await evaluateRow(row, total, table, inputValues)
   let evaluatedTables: RollResult[][] | undefined
   if (table.autoEvaluate && currentDepth < 10) {
     evaluatedTables = await evaluateRowMeta(
@@ -342,15 +343,26 @@ export const rollOnTable = async (
       currentDepth + 1,
     )
   }
+
+  const extraResults = table.extraResults
+    ? evaluatePlaceholders(table.extraResults)
+    : undefined
+
+  if (extraResults) {
+    extraResults.text = await applyInputsToText(
+      extraResults.text,
+      table,
+      inputValues,
+    )
+  }
+
   return {
     table,
     dice,
     total,
     evaluatedTables,
     row: evaluatedRow,
-    extraResults: table.extraResults
-      ? evaluatePlaceholders(table.extraResults)
-      : undefined,
+    extraResults,
   }
 }
 
@@ -369,30 +381,129 @@ export const evaluateRollResultTables = async (
   return rollResult.evaluatedTables
 }
 
+interface TextInputModifiers {
+  transform?: "u" | "l"
+  colour?: string
+  colourBackground?: string
+  index?: number
+}
+
+const patternFromKey = (key: string) =>
+  new RegExp(
+    "\\[" +
+      key +
+      "(:c=\\w+)?" +
+      "(:cbg=\\w+)?" +
+      "(:t=[lu])?" +
+      "(:\\[\\d+])?" +
+      "\\]",
+  )
+
+const modifiersFromTextAndKey = (text: string, key: string) => {
+  const modifiers: TextInputModifiers = {}
+
+  const pattern = patternFromKey(key)
+  const match = text.match(pattern)
+
+  if (!match) {
+    return modifiers
+  }
+
+  const transform = match[3]
+  if (transform) {
+    modifiers.transform = transform.split(
+      "=",
+    )[1] as TextInputModifiers["transform"]
+  }
+  const colour = match[1]
+  if (colour) {
+    modifiers.colour = colour.split("=")[1]
+  }
+  const colourBg = match[2]
+  if (colourBg) {
+    modifiers.colourBackground = colourBg.split("=")[1]
+  }
+  const resultIndex = match[4]
+  if (resultIndex) {
+    modifiers.index = parseInt(resultIndex.replace(/[^\d]/g, ""), 10)
+  }
+
+  return modifiers
+}
+
+/**
+ * NOTE: keys must not have special regexp characters
+ */
+const applyInputsToText = async (
+  text: string,
+  table: RegisteredTable,
+  existingInputValues?: {[key: string]: string[]},
+) => {
+  if (!table.inputs) {
+    return text
+  }
+  const requiredInputKeys: string[] = []
+  existingInputValues = existingInputValues || {}
+
+  for (const key of Object.keys(table.inputs)) {
+    const pattern = patternFromKey(key)
+    const match = text.match(pattern)
+    if (match) {
+      requiredInputKeys.push(key)
+    } else {
+      continue
+    }
+
+    if (key in existingInputValues) {
+      continue
+    }
+    const tableRef = table.inputs[key]
+    existingInputValues[key] = (await rollTableRef(tableRef, {}, table)).map(
+      (r) => r.row.text,
+    )
+  }
+
+  for (const key of requiredInputKeys) {
+    const value = existingInputValues[key]
+    const pattern = patternFromKey(key)
+    while (text.match(pattern)) {
+      const modifiers: TextInputModifiers = modifiersFromTextAndKey(text, key)
+
+      const index = modifiers?.index ?? 0
+      let textValue = typeof value === "string" ? value : value[index]
+
+      if (modifiers?.transform === "l") {
+        textValue = textValue.toLowerCase()
+      } else if (modifiers?.transform === "u") {
+        textValue = textValue.toUpperCase()
+      }
+
+      if (modifiers.colour) {
+        textValue = chalk.keyword(modifiers.colour)(textValue)
+      }
+      if (modifiers.colourBackground) {
+        textValue = chalk.bgKeyword(modifiers.colourBackground)(textValue)
+      }
+
+      text = text.replace(pattern, textValue)
+    }
+  }
+
+  return text
+}
+
 const evaluateRow = async (
   row: TableRow,
   roll: number,
   table: RegisteredTable,
+  inputValues?: {[key: string]: string[]},
 ): Promise<EvaluatedTableRow> => {
   const evaluation = evaluatePlaceholders(row.text)
-  let textWithInputs = evaluation.text
-
-  const inputValues: {[key: string]: string} = {}
-  const requiredInputKeys: string[] = []
-
-  if (table.inputs) {
-    for (const key of Object.keys(table.inputs)) {
-      if (textWithInputs.includes(`[${key}]`)) {
-        requiredInputKeys.push(key)
-      }
-      const tableRef = table.inputs[key]
-      inputValues[key] = (await rollTableRef(tableRef, {}, table))[0].row.text
-    }
-
-    for (const key of Object.keys(table.inputs)) {
-      textWithInputs = textWithInputs.replace(`[${key}]`, inputValues[key])
-    }
-  }
+  const textWithInputs = await applyInputsToText(
+    evaluation.text,
+    table,
+    inputValues,
+  )
 
   return {
     ...row,

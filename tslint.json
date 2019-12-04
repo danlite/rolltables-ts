@@ -5,6 +5,7 @@
   ],
   "jsRules": {},
   "rules": {
+    "trailing-comma": true,
     "ordered-imports": true,
     "no-console": false,
     "semicolon": false,

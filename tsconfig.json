@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "declarationDir": "./dist",
+    "outDir": "./dist",
     "lib": ["es2017"],
     "moduleResolution": "node",
     "noUnusedLocals": false,
@@ -8,7 +10,6 @@
     "declaration": true,
     "importHelpers": true,
     "module": "commonjs",
-    "outDir": "lib",
     "rootDir": "src",
     "strict": true,
     "target": "es2017",
@@ -18,5 +19,5 @@
     "noImplicitAny": true
   },
   "include": ["**/*"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist"]
 }

@@ -2,7 +2,8 @@
   "name": "rolltables",
   "version": "0.1.0",
   "description": "",
-  "main": "rolltables.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "dependencies": {
     "chalk": "^2.4.2",
     "fuzzysort": "^1.1.4",
@@ -19,13 +20,18 @@
     "ts-jest": "^24.0.2",
     "tslib": "^1.10.0",
     "tslint": "^5.18.0",
-    "typescript": "^3.5.3"
+    "typescript": "^3.7.2"
   },
   "scripts": {
+    "prepare": "npm run build",
+    "build": "tsc",
     "test": "jest",
     "cli": "ts-node ./src/cli.ts",
     "debug": "ts-node ./src/index.ts"
   },
+  "files": [
+    "dist/**/*"
+  ],
   "author": "",
   "license": "ISC"
 }
