@@ -7,9 +7,10 @@ import {
   prepareMultiDimensionalTable,
   prepareTable,
 } from './prepare'
-import {MultiDimensionalTable, TableBundle, TableRef} from './types'
+import {MultiDimensionalTable, TableRef} from './types'
 import {formatDice} from './dice'
 import {RegisteredTable, Table} from './RegisteredTable'
+import {TableBundle, RegisteredBundle} from './RegisteredBundle'
 
 const DEBUG = false
 const TABLE_ROOT = '/Users/dan/workspace/rolltables-private/tables'
@@ -22,7 +23,6 @@ interface Registered {
 type Registry = {[key: string]: RegisteredRollable}
 
 export type RegisteredMultiDimensionalTable = MultiDimensionalTable & Registered
-export type RegisteredBundle = TableBundle & Registered
 export type RegisteredRollable = RegisteredTable | RegisteredBundle
 
 export const isBundle = (
@@ -81,10 +81,11 @@ const registerRollable = (
   let registeredRollable: RegisteredRollable
   if ('tables' in tableOrBundle) {
     const bundle = tableOrBundle
-    registeredRollable = {
-      ...bundle,
+    registeredRollable = new RegisteredBundle(
       identifier,
-    }
+      bundle.tables,
+      bundle.title,
+    )
   } else {
     const table = tableOrBundle
     registeredRollable = new RegisteredTable(

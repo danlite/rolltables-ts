@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import chalk from 'chalk'
-import {getRollable, isBundle, RegisteredBundle} from './tables'
+import {getRollable, isBundle} from './tables'
 import {
   RollResult,
   TableBundleContext,
@@ -11,6 +10,7 @@ import {
 import {getDiceRange, Range} from './range'
 import {parseDice} from './parse'
 import {RegisteredTable} from './RegisteredTable'
+import {RegisteredBundle} from './RegisteredBundle'
 
 const rangeForResultOnTable = (
   result: number,
@@ -54,6 +54,20 @@ const valueInContext = (
     return context[value] || defaultValue
   }
   return defaultValue
+}
+
+export const rollBundleOrTable = async (
+  rollable: RegisteredBundle | RegisteredTable,
+  opts: TableRollOptions = {},
+): Promise<RollResult[][]> => {
+  const currentDepth = opts.currentDepth || 0
+  const context: TableBundleContext = {$previousRoll: 0}
+
+  if (isBundle(rollable)) {
+    return await rollable.roll(context, currentDepth)
+  } else {
+    return [[await rollable.roll({currentDepth})]]
+  }
 }
 
 export const rollTableRef = async (
@@ -131,34 +145,4 @@ export const testTable = async (table: RegisteredTable): Promise<void> => {
       }
     }
   }
-}
-
-export const rollBundleOrTable = async (
-  rollable: RegisteredBundle | RegisteredTable,
-  opts: TableRollOptions = {},
-): Promise<RollResult[][]> => {
-  const currentDepth = opts.currentDepth || 0
-  let context: TableBundleContext = {$previousRoll: 0}
-  const tableResults: RollResult[][] = []
-  if (isBundle(rollable)) {
-    for (const tableRef of rollable.tables) {
-      const results = await rollTableRef(
-        tableRef,
-        context,
-        rollable.identifier,
-        currentDepth,
-      )
-      tableResults.push(results)
-      for (const result of results) {
-        // TODO: figure out how/why we'd merge the contexts from several rolls of the same table
-        context = Object.assign(context, result.row.getContext(), {
-          $previousRoll: result.total,
-        })
-      }
-    }
-  } else {
-    const results = await rollable.roll({currentDepth})
-    tableResults.push([results])
-  }
-  return tableResults
 }

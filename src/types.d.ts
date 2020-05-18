@@ -72,12 +72,6 @@ interface RollResult {
   evaluatedTables?: RollResult[][]
 }
 
-interface TableBundle {
-  identifier: string
-  tables: TableRef[]
-  title?: string
-}
-
 interface TableRollOptions {
   dice?: Die[]
   total?: number

@@ -4,7 +4,8 @@ import chalk from 'chalk'
 import {basename} from 'path'
 import {rollBundleOrTable, testTable} from './rolltables'
 import * as tables from './tables'
-import {RollResult, TableBundle} from './types'
+import {RollResult} from './types'
+import {TableBundle} from './RegisteredBundle'
 
 const hoard = async () => {
   const table = await tables.getRollable('dmg/treasure/hoard-1-loot')
@@ -205,51 +206,6 @@ const testAllTables = async (tableList: tables.RegisteredRollable[]) => {
     } else {
       rollBundleOrTable(table)
     }
-  }
-}
-
-const rollFamilyHome = async () => {
-  const bundles: TableBundle[] = [
-    {
-      identifier: '/xgte/life/home',
-      title: 'Family Lifestyle and Childhood Home',
-      tables: [
-        {path: '/xgte/life/origins/family-lifestyle'},
-        {
-          path: '/xgte/life/origins/childhood-home',
-          modifier: 'mod',
-        },
-      ],
-    },
-    {
-      identifier: '/gos/random-ship',
-      title: 'Random Ship',
-      tables: [
-        {path: '/gos/random-ships/type'},
-        {path: '/gos/random-ships/name-adjective'},
-        {path: '/gos/random-ships/name-noun'},
-        {path: '/gos/random-ships/purpose'},
-      ],
-    },
-    {
-      identifier: '/phb/backgrounds/acolyte',
-      title: 'Acolyte Background',
-      tables: [
-        {
-          path: '/phb/backgrounds/acolyte/personality-trait',
-          rollCount: 2,
-          unique: true,
-        },
-        {path: '/phb/backgrounds/acolyte/ideal'},
-        {path: '/phb/backgrounds/acolyte/bond'},
-        {path: '/phb/backgrounds/acolyte/flaw'},
-      ],
-    },
-  ]
-  for (const bundle of bundles) {
-    console.log(chalk.blue(bundle.title || ''))
-    const results = await rollBundleOrTable(bundle)
-    showMetaTableResults(results)
   }
 }
 
