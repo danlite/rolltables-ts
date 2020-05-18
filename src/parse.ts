@@ -1,11 +1,11 @@
-import {Die, Drop} from "./types"
+import {Die, Drop} from './types'
 
 export const parseInteger = (s: string): number => parseInt(s)
 export const parseRollInteger = (s: string): number =>
-  s === "00" ? 100 : parseInteger(s)
+  s === '00' ? 100 : parseInteger(s)
 const parseKeepDrop = (s: string | undefined, numDice: number): Drop => {
   const res: Drop = {
-    type: "lowest",
+    type: 'lowest',
     number: 0,
   }
   const match = s ? s.match(/([kd])([hl])?(\d+)/) : null
@@ -15,15 +15,15 @@ const parseKeepDrop = (s: string | undefined, numDice: number): Drop => {
 
   res.number = parseInt(match[3], 10)
 
-  const action = match[1] as "k" | "d"
-  let cohort: "h" | "l" =
-    (match[2] as "h" | "l" | undefined) || (action === "k" ? "h" : "l")
+  const action = match[1] as 'k' | 'd'
+  let cohort: 'h' | 'l' =
+    (match[2] as 'h' | 'l' | undefined) || (action === 'k' ? 'h' : 'l')
 
-  if (action === "k") {
-    cohort = cohort === "h" ? "l" : "h"
+  if (action === 'k') {
+    cohort = cohort === 'h' ? 'l' : 'h'
     res.number = Math.max(0, numDice - res.number)
   }
-  res.type = cohort === "l" ? "lowest" : "highest"
+  res.type = cohort === 'l' ? 'lowest' : 'highest'
 
   return res
 }
@@ -62,7 +62,7 @@ const parseDie = (text: string): Die | null => {
 
 export const parseDice = (text: string): Die[] => {
   const pattern = /(^|[-+])[^-+]+/g
-  const diceMatches = text.replace(/\s/g, "").match(pattern)
+  const diceMatches = text.replace(/\s/g, '').match(pattern)
   if (!diceMatches) {
     return []
   }

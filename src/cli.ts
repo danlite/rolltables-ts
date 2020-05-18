@@ -1,12 +1,12 @@
-import * as fuzzysort from "fuzzysort"
-import * as inquirer from "inquirer"
+import * as fuzzysort from 'fuzzysort'
+import * as inquirer from 'inquirer'
 // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 // @ts-ignore
-import * as inquirerAutocomplete from "inquirer-autocomplete-prompt"
-import {showMetaTableResults} from "."
-import {evaluateRollResultTables, rollBundleOrTable} from "./rolltables"
-import {getRegistryKeys, loadAllTables, getRollable} from "./tables"
-import {RollResult} from "./types"
+import * as inquirerAutocomplete from 'inquirer-autocomplete-prompt'
+import {showMetaTableResults} from '.'
+import {evaluateRollResultTables, rollBundleOrTable} from './rolltables'
+import {getRegistryKeys, loadAllTables, getRollable} from './tables'
+import {RollResult} from './types'
 
 async function main(): Promise<void> {
   const sorter = fuzzysort.new({allowTypo: true})
@@ -14,14 +14,14 @@ async function main(): Promise<void> {
   await loadAllTables()
   const keys = getRegistryKeys()
 
-  inquirer.registerPrompt("autocomplete", inquirerAutocomplete)
+  inquirer.registerPrompt('autocomplete', inquirerAutocomplete)
 
   const promptTableSearch = async (): Promise<{table: string}> =>
     inquirer.prompt([
       {
-        type: "autocomplete",
-        name: "table",
-        message: "Look up a table:",
+        type: 'autocomplete',
+        name: 'table',
+        message: 'Look up a table:',
         // pageSize: 10,
         source: (_: unknown, input: string): unknown => {
           // console.log(answersSoFar)
@@ -49,9 +49,9 @@ async function main(): Promise<void> {
       console.log({resultsToExpand})
       const expand = (
         await inquirer.prompt({
-          type: "confirm",
-          name: "expand",
-          message: "Expand related tables?",
+          type: 'confirm',
+          name: 'expand',
+          message: 'Expand related tables?',
         })
       ).expand
       if (expand) {

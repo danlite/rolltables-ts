@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import chalk from "chalk"
-import {basename} from "path"
+import chalk from 'chalk'
+import {basename} from 'path'
 import {
   evaluateRowMeta,
   rollBundleOrTable,
   rollOnTable,
   testTable,
-} from "./rolltables"
-import * as tables from "./tables"
-import {RollResult, TableBundle} from "./types"
+} from './rolltables'
+import * as tables from './tables'
+import {RollResult, TableBundle} from './types'
 
 const hoard = async () => {
-  const table = await tables.getRollable("dmg/treasure/hoard-1-loot")
+  const table = await tables.getRollable('dmg/treasure/hoard-1-loot')
   if (!tables.isTable(table)) {
     return
   }
@@ -38,41 +38,41 @@ const hoard = async () => {
             (r) =>
               r.row.text +
               (r.evaluatedTables
-                ? r.evaluatedTables.map((x) => x.map((y) => " - " + y.row.text))
-                : ""),
+                ? r.evaluatedTables.map((x) => x.map((y) => ' - ' + y.row.text))
+                : ''),
           )
-          .join("\n"),
+          .join('\n'),
       )
-      .join("\n\n"),
+      .join('\n\n'),
   )
-  console.log("\n")
+  console.log('\n')
 }
 
 const cantrip = async () => {
-  console.log("Cantrip:")
-  const spells = await tables.getRollable("spells/level/0")
+  console.log('Cantrip:')
+  const spells = await tables.getRollable('spells/level/0')
   if (!tables.isTable(spells)) {
     return
   }
   const result = await rollOnTable(spells)
   console.log(result.row.text)
-  console.log("\n")
+  console.log('\n')
 }
 
 const sylvan = async () => {
-  console.log("Sylvan forest encounter:")
-  const table = await tables.getRollable("dmg/sylvan-forest")
+  console.log('Sylvan forest encounter:')
+  const table = await tables.getRollable('dmg/sylvan-forest')
   if (!tables.isTable(table)) {
     return
   }
   const result = await rollOnTable(table) // , sylvan.dice, 8)
   console.log(result.row.text)
-  console.log("\n")
+  console.log('\n')
 }
 
 const villain = async () => {
-  console.log("Villain objective:")
-  const table = await tables.getRollable("dmg/villains/objective")
+  console.log('Villain objective:')
+  const table = await tables.getRollable('dmg/villains/objective')
   if (!tables.isTable(table)) {
     return
   }
@@ -87,14 +87,14 @@ const villain = async () => {
             (r) =>
               r.row.text +
               (r.evaluatedTables
-                ? r.evaluatedTables.map((x) => x.map((y) => " - " + y.row.text))
-                : ""),
+                ? r.evaluatedTables.map((x) => x.map((y) => ' - ' + y.row.text))
+                : ''),
           )
-          .join("\n"),
+          .join('\n'),
       )
-      .join("\n\n"),
+      .join('\n\n'),
   )
-  console.log("\n")
+  console.log('\n')
 }
 
 const randomTableRoll = async () => {
@@ -109,19 +109,19 @@ const randomTableRoll = async () => {
         referencedTable
           .map(
             (rollResult) =>
-              "- " +
+              '- ' +
               rollResult.table.title +
-              ": " +
+              ': ' +
               rollResult.row.text +
               (rollResult.evaluatedTables
                 ? rollResult.evaluatedTables.map((x) =>
-                    x.map((y) => " - " + y.table.title + ": " + y.row.text),
+                    x.map((y) => ' - ' + y.table.title + ': ' + y.row.text),
                   )
-                : ""),
+                : ''),
           )
-          .join("\n"),
+          .join('\n'),
       )
-      .join("\n"),
+      .join('\n'),
   )
 }
 
@@ -159,10 +159,10 @@ const randomTableRoll = async () => {
 // }
 
 const showTableResults = (tableResults: RollResult[]) => {
-  let shownTitle = ""
+  let shownTitle = ''
   for (const result of tableResults) {
     if (shownTitle !== result.table.title) {
-      console.log(chalk.keyword("orange")(result.table.title))
+      console.log(chalk.keyword('orange')(result.table.title))
       shownTitle = result.table.title
     }
     console.group()
@@ -179,8 +179,8 @@ export const showMetaTableResults = (metaTableResults: RollResult[][]) => {
 export const showRollResult = (result: RollResult) => {
   console.log(
     (result.extraResults
-      ? chalk.magenta(result.extraResults.text) + "\n"
-      : "") +
+      ? chalk.magenta(result.extraResults.text) + '\n'
+      : '') +
       chalk.cyan(`(${result.total}) `) +
       chalk.white(result.row.text),
   )
@@ -193,7 +193,7 @@ export const showRollResult = (result: RollResult) => {
 }
 
 const dwarves = async () => {
-  const table = await tables.getRollable("mtof/dwarves/group/composition")
+  const table = await tables.getRollable('mtof/dwarves/group/composition')
   if (!tables.isTable(table)) {
     return
   }
@@ -216,43 +216,43 @@ const testAllTables = async (tableList: tables.RegisteredRollable[]) => {
 const rollFamilyHome = async () => {
   const bundles: TableBundle[] = [
     {
-      identifier: "/xgte/life/home",
-      title: "Family Lifestyle and Childhood Home",
+      identifier: '/xgte/life/home',
+      title: 'Family Lifestyle and Childhood Home',
       tables: [
-        {path: "/xgte/life/origins/family-lifestyle"},
+        {path: '/xgte/life/origins/family-lifestyle'},
         {
-          path: "/xgte/life/origins/childhood-home",
-          modifier: "mod",
+          path: '/xgte/life/origins/childhood-home',
+          modifier: 'mod',
         },
       ],
     },
     {
-      identifier: "/gos/random-ship",
-      title: "Random Ship",
+      identifier: '/gos/random-ship',
+      title: 'Random Ship',
       tables: [
-        {path: "/gos/random-ships/type"},
-        {path: "/gos/random-ships/name-adjective"},
-        {path: "/gos/random-ships/name-noun"},
-        {path: "/gos/random-ships/purpose"},
+        {path: '/gos/random-ships/type'},
+        {path: '/gos/random-ships/name-adjective'},
+        {path: '/gos/random-ships/name-noun'},
+        {path: '/gos/random-ships/purpose'},
       ],
     },
     {
-      identifier: "/phb/backgrounds/acolyte",
-      title: "Acolyte Background",
+      identifier: '/phb/backgrounds/acolyte',
+      title: 'Acolyte Background',
       tables: [
         {
-          path: "/phb/backgrounds/acolyte/personality-trait",
+          path: '/phb/backgrounds/acolyte/personality-trait',
           rollCount: 2,
           unique: true,
         },
-        {path: "/phb/backgrounds/acolyte/ideal"},
-        {path: "/phb/backgrounds/acolyte/bond"},
-        {path: "/phb/backgrounds/acolyte/flaw"},
+        {path: '/phb/backgrounds/acolyte/ideal'},
+        {path: '/phb/backgrounds/acolyte/bond'},
+        {path: '/phb/backgrounds/acolyte/flaw'},
       ],
     },
   ]
   for (const bundle of bundles) {
-    console.log(chalk.blue(bundle.title || ""))
+    console.log(chalk.blue(bundle.title || ''))
     const results = await rollBundleOrTable(bundle)
     showMetaTableResults(results)
   }
@@ -260,22 +260,22 @@ const rollFamilyHome = async () => {
 
 const charlatan = async () => {
   const bundle = await tables.getRollable(
-    "/phb/backgrounds/charlatan/charlatan.bundle",
+    '/phb/backgrounds/charlatan/charlatan.bundle',
   )
   if (!tables.isBundle(bundle)) {
     return
   }
-  console.log(chalk.redBright(bundle.title || ""))
+  console.log(chalk.redBright(bundle.title || ''))
   const results = await rollBundleOrTable(bundle)
   showMetaTableResults(results)
 }
 
 const backgrounds = async () => {
   const multiBundle = await tables.loadMultiBundle(
-    "/phb/backgrounds/backgrounds",
+    '/phb/backgrounds/backgrounds',
   )
   const bundle = await tables.getRollable(
-    "/phb/backgrounds/guild-artisan/guild-artisan",
+    '/phb/backgrounds/guild-artisan/guild-artisan',
   )
   if (!tables.isBundle(bundle)) {
     return
@@ -286,7 +286,7 @@ const backgrounds = async () => {
       bundle.title ||
         basename(bundle.identifier)
           .replace(/(?:^|\s|-)(.)/g, (l) => l.toUpperCase())
-          .replace("-", " "),
+          .replace('-', ' '),
     ),
   )
   const results = await rollBundleOrTable(bundle)

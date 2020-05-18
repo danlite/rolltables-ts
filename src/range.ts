@@ -1,5 +1,5 @@
-import {TableRow, Die} from "./types"
-import {parseRollInteger} from "./parse"
+import {TableRow, Die} from './types'
+import {parseRollInteger} from './parse'
 
 export const parseRange = (range: string): [number, number] | number | null => {
   const match = range.trim().match(/^(\d+)(?:[^\d](\d+))?$/)
@@ -51,7 +51,7 @@ export class Range implements Range {
 }
 
 const getDieRange = (die: Die): Range => {
-  if (typeof die === "number") {
+  if (typeof die === 'number') {
     return new Range(die)
   } else {
     const dropped = die.drop ? die.drop.number : 0
@@ -68,7 +68,7 @@ export const getDiceRange = (dice: Die[]): Range => {
 }
 
 export const rangeMin = (row: TableRow): number => {
-  if (typeof row.range === "number") {
+  if (typeof row.range === 'number') {
     return row.range
   } else {
     return row.range[0]
@@ -76,7 +76,7 @@ export const rangeMin = (row: TableRow): number => {
 }
 
 export const rangeMax = (row: TableRow): number => {
-  if (typeof row.range === "number") {
+  if (typeof row.range === 'number') {
     return row.range
   } else {
     return row.range[row.range.length - 1]

@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
-import chalk from "chalk"
-import * as inquirer from "inquirer"
+import chalk from 'chalk'
+import * as inquirer from 'inquirer'
 import {
   getRollable,
   isBundle,
   RegisteredBundle,
   RegisteredTable,
-} from "./tables"
+} from './tables'
 import {
   DiceRollResult,
   Die,
@@ -21,17 +21,17 @@ import {
   TableRollOptions,
   TableRow,
   TableRowContext,
-} from "./types"
-import {parseRange, getDiceRange, Range, rangeMin} from "./range"
-import {parseDice, parseInteger} from "./parse"
+} from './types'
+import {parseRange, getDiceRange, Range, rangeMin} from './range'
+import {parseDice, parseInteger} from './parse'
 
-const ROW_SEPARATOR = "|"
+const ROW_SEPARATOR = '|'
 
 export const parseRollTableRows = (
   texts: string | Array<string | TableRef>,
   simple?: boolean,
 ): TableRow[] => {
-  if (typeof texts === "string") {
+  if (typeof texts === 'string') {
     texts = [texts]
   }
 
@@ -39,8 +39,8 @@ export const parseRollTableRows = (
   let rowIndex = 1
 
   for (const item of texts) {
-    if (typeof item === "string") {
-      const lines = item.split("\n")
+    if (typeof item === 'string') {
+      const lines = item.split('\n')
       const rows: TableRow[] = lines
         .map((line) => {
           if (simple) {
@@ -85,7 +85,7 @@ const validateTable = (table: Table): boolean => {
   for (const row of rows) {
     let rowMin
     let rowMax
-    if (typeof row.range === "number") {
+    if (typeof row.range === 'number') {
       rowMin = rowMax = row.range
     } else {
       rowMin = row.range[0]
@@ -97,7 +97,7 @@ const validateTable = (table: Table): boolean => {
 
     for (let i = rowMin; i <= rowMax; i++) {
       if (numbers[i]) {
-        console.error(i + " found more than once")
+        console.error(i + ' found more than once')
         return false
       }
       numbers[i] = true
@@ -105,7 +105,7 @@ const validateTable = (table: Table): boolean => {
   }
 
   if (max - min + 1 !== Object.keys(numbers).length) {
-    console.error("range covered by rows is non-continuous")
+    console.error('range covered by rows is non-continuous')
     return false
   }
   if (max < diceRange.max) {
@@ -124,7 +124,7 @@ const rollDice = (dice: Die[]): DiceRollResult => {
   let total = 0
   const rolls = dice.map((die) => {
     const dieRolls = []
-    if (typeof die === "number") {
+    if (typeof die === 'number') {
       dieRolls.push(die)
     } else {
       for (let i = 0; i < die.count; i++) {
@@ -136,8 +136,8 @@ const rollDice = (dice: Die[]): DiceRollResult => {
 
     if (die.drop) {
       const limit =
-        die.drop.type === "highest" ? Number.MIN_VALUE : Number.MAX_VALUE
-      const comparator = die.drop.type === "highest" ? Math.max : Math.min
+        die.drop.type === 'highest' ? Number.MIN_VALUE : Number.MAX_VALUE
+      const comparator = die.drop.type === 'highest' ? Math.max : Math.min
 
       for (let i = 0; i < die.drop.number; i++) {
         const target = dieRolls.reduce(
@@ -189,8 +189,8 @@ export const rollOnTable = async (
       const answer = await inquirer.prompt([
         {
           message: table.selectablePrompt,
-          name: "rowSelection",
-          type: "list",
+          name: 'rowSelection',
+          type: 'list',
           choices: table.rows.map((r) => ({
             name: r.text,
             short: r.text,
@@ -271,7 +271,7 @@ export const evaluateRollResultTables = async (
 }
 
 interface TextInputModifiers {
-  transform?: "u" | "l"
+  transform?: 'u' | 'l'
   colour?: string
   colourBackground?: string
   index?: number
@@ -279,13 +279,13 @@ interface TextInputModifiers {
 
 const patternFromKey = (key: string): RegExp =>
   new RegExp(
-    "\\[" +
+    '\\[' +
       key +
-      "(:c=\\w+)?" +
-      "(:cbg=\\w+)?" +
-      "(:t=[lu])?" +
-      "(:\\[\\d+])?" +
-      "\\]",
+      '(:c=\\w+)?' +
+      '(:cbg=\\w+)?' +
+      '(:t=[lu])?' +
+      '(:\\[\\d+])?' +
+      '\\]',
   )
 
 const modifiersFromTextAndKey = (
@@ -304,20 +304,20 @@ const modifiersFromTextAndKey = (
   const transform = match[3]
   if (transform) {
     modifiers.transform = transform.split(
-      "=",
-    )[1] as TextInputModifiers["transform"]
+      '=',
+    )[1] as TextInputModifiers['transform']
   }
   const colour = match[1]
   if (colour) {
-    modifiers.colour = colour.split("=")[1]
+    modifiers.colour = colour.split('=')[1]
   }
   const colourBg = match[2]
   if (colourBg) {
-    modifiers.colourBackground = colourBg.split("=")[1]
+    modifiers.colourBackground = colourBg.split('=')[1]
   }
   const resultIndex = match[4]
   if (resultIndex) {
-    modifiers.index = parseInt(resultIndex.replace(/[^\d]/g, ""), 10)
+    modifiers.index = parseInt(resultIndex.replace(/[^\d]/g, ''), 10)
   }
 
   return modifiers
@@ -362,11 +362,11 @@ const applyInputsToText = async (
       const modifiers: TextInputModifiers = modifiersFromTextAndKey(text, key)
 
       const index = modifiers?.index ?? 0
-      let textValue = typeof value === "string" ? value : value[index]
+      let textValue = typeof value === 'string' ? value : value[index]
 
-      if (modifiers?.transform === "l") {
+      if (modifiers?.transform === 'l') {
         textValue = textValue.toLowerCase()
-      } else if (modifiers?.transform === "u") {
+      } else if (modifiers?.transform === 'u') {
         textValue = textValue.toUpperCase()
       }
 
@@ -435,10 +435,10 @@ const valueInContext = (
   context: TableRowContext,
   defaultValue = 0,
 ): number => {
-  if (typeof value === "number") {
+  if (typeof value === 'number') {
     return value
   }
-  if (typeof value === "string" && value in context) {
+  if (typeof value === 'string' && value in context) {
     return context[value] || defaultValue
   }
   return defaultValue
@@ -491,7 +491,7 @@ const rollTableRef = async (
 }
 
 const numberMatchesRow = (n: number) => (row: TableRow): boolean => {
-  if (typeof row.range === "number") {
+  if (typeof row.range === 'number') {
     if (row.range === n) {
       return true
     } else {
@@ -504,20 +504,20 @@ const numberMatchesRow = (n: number) => (row: TableRow): boolean => {
 const isTableRowArray = (
   input: string | Array<string | TableRow | TableRef>,
 ): input is TableRow[] =>
-  typeof input !== "string" &&
-  typeof input[0] !== "string" &&
-  !("path" in input[0]) &&
+  typeof input !== 'string' &&
+  typeof input[0] !== 'string' &&
+  !('path' in input[0]) &&
   input[0].range !== undefined &&
   input[0].text !== undefined
 
 export const getDimensionIdentifiers = (
-  table: Pick<MultiDimensionalTable, "dimensions">,
+  table: Pick<MultiDimensionalTable, 'dimensions'>,
 ): string[] =>
   table.dimensions.map((dim) =>
     dim
       .toLowerCase()
-      .replace(/[^0-9a-zA-Z]/, "-")
-      .replace(/--+/, "-"),
+      .replace(/[^0-9a-zA-Z]/, '-')
+      .replace(/--+/, '-'),
   )
 
 export const prepareMultiDimensionalTable = (
@@ -526,7 +526,7 @@ export const prepareMultiDimensionalTable = (
     rows: MultiDimensionalTableRow[]
   } & Pick<
     MultiDimensionalTable,
-    "title" | "extraResults" | "autoEvaluate" | "dimensions" | "inputs"
+    'title' | 'extraResults' | 'autoEvaluate' | 'dimensions' | 'inputs'
   >,
 ): Table[] => {
   const {
@@ -539,7 +539,7 @@ export const prepareMultiDimensionalTable = (
     inputs,
   } = input
   if (!dimensions) {
-    throw new Error("no dimensions provided")
+    throw new Error('no dimensions provided')
   }
   return dimensions.map(
     (dimTitle, dimIndex): Table => {
@@ -551,7 +551,7 @@ export const prepareMultiDimensionalTable = (
         inputs,
         rows: rows
           .map((row): TableRow | null => {
-            const range = parseRange(row.range.split("/")[dimIndex])
+            const range = parseRange(row.range.split('/')[dimIndex])
             if (range === null) {
               return null
             }
@@ -572,12 +572,12 @@ export const prepareTable = (
     rows: TableRow[] | string | Array<string | TableRef>
   } & Pick<
     Table,
-    | "title"
-    | "extraResults"
-    | "autoEvaluate"
-    | "inputs"
-    | "selectable"
-    | "selectablePrompt"
+    | 'title'
+    | 'extraResults'
+    | 'autoEvaluate'
+    | 'inputs'
+    | 'selectable'
+    | 'selectablePrompt'
   >,
 ): Table => {
   const {
@@ -592,7 +592,7 @@ export const prepareTable = (
     input.autoEvaluate === undefined ? true : input.autoEvaluate
   let {dice} = input
   let simple = false
-  if (dice === "#" || dice === undefined) {
+  if (dice === '#' || dice === undefined) {
     dice = undefined
     simple = true
   }
@@ -601,11 +601,11 @@ export const prepareTable = (
     : parseRollTableRows(rows, simple)
 
   const parsedDice =
-    typeof dice === "string"
+    typeof dice === 'string'
       ? parseDice(dice)
-      : typeof dice === "object"
+      : typeof dice === 'object'
       ? dice
-      : parseDice("d" + parsedRows.length)
+      : parseDice('d' + parsedRows.length)
 
   const table = {
     title,
@@ -624,10 +624,10 @@ export const prepareTable = (
 export const prepareSimpleTable = (
   input: {
     rows: string
-  } & Pick<Table, "title" | "extraResults" | "autoEvaluate" | "inputs">,
+  } & Pick<Table, 'title' | 'extraResults' | 'autoEvaluate' | 'inputs'>,
 ): Table => {
   const {title, extraResults, rows, autoEvaluate, inputs} = input
-  const parsedRows = rows.split("\n").map((line, i) => ({
+  const parsedRows = rows.split('\n').map((line, i) => ({
     range: i + 1,
     text: line,
     meta: [],
@@ -638,17 +638,17 @@ export const prepareSimpleTable = (
     extraResults,
     inputs,
     rows: parsedRows,
-    dice: parseDice("d" + parsedRows.length),
+    dice: parseDice('d' + parsedRows.length),
   }
   validateTable(table)
   return table
 }
 
 export const formatDice = (dice: Die[]): string => {
-  let result = ""
+  let result = ''
   for (const die of dice) {
-    const sign = die.multiplier >= 0 ? "+" : "-"
-    if (result.length > 0 || sign === "-") {
+    const sign = die.multiplier >= 0 ? '+' : '-'
+    if (result.length > 0 || sign === '-') {
       result += sign
     }
     if (die.sides === 1) {
@@ -687,13 +687,13 @@ export const evaluatePlaceholders = (
       const matchedText = match[0]
       const formattedDice = formatDice(dice)
       const formattedTotal = chalk.yellow(
-        "(" + diceResult.total.toLocaleString() + ")",
+        '(' + diceResult.total.toLocaleString() + ')',
       )
       text = text.replace(
         matchedText,
         formattedDice === diceResult.total.toString()
           ? formattedTotal
-          : formattedDice + " " + formattedTotal,
+          : formattedDice + ' ' + formattedTotal,
       )
     } else {
       break
@@ -761,7 +761,7 @@ export const evaluatePlaceholders = (
 
   if (chosenSection) {
     let chosenStyle = chalk.green
-    const firstWord = chosenSection.text.split(" ")[0].toLowerCase()
+    const firstWord = chosenSection.text.split(' ')[0].toLowerCase()
     try {
       chosenStyle = chalk.keyword(firstWord)
     } catch {
@@ -781,8 +781,8 @@ export const evaluatePlaceholders = (
   }
 
   text = finalTextParts
-    .map((s) => (typeof s === "string" ? s : s.text))
-    .join("")
+    .map((s) => (typeof s === 'string' ? s : s.text))
+    .join('')
 
   return {
     text,
@@ -800,22 +800,22 @@ export const testTable = async (table: RegisteredTable): Promise<void> => {
     const result = await rollOnTable(table, {dice: table.dice, total: r})
     if (!showedExtraResults) {
       if (result.extraResults) {
-        console.log(chalk.keyword("orange")(result.extraResults.text))
+        console.log(chalk.keyword('orange')(result.extraResults.text))
       }
       showedExtraResults = true
     }
     console.log(
-      chalk.whiteBright(r.toString()) + ": " + chalk.white(result.row.text),
+      chalk.whiteBright(r.toString()) + ': ' + chalk.white(result.row.text),
     )
     const related = await evaluateRowMeta(result.row, table, 0)
     let displayedTitle: string | null = null
     for (const refResults of related) {
       for (const refResult of refResults) {
         if (refResult.table.title !== displayedTitle) {
-          console.log(chalk.blueBright("  " + refResult.table.title + ": "))
+          console.log(chalk.blueBright('  ' + refResult.table.title + ': '))
           displayedTitle = refResult.table.title
         }
-        console.log("  - " + refResult.row.text)
+        console.log('  - ' + refResult.row.text)
       }
     }
   }
@@ -858,7 +858,7 @@ const rangeForResultOnTable = (
   const row = rowForRoll(table, result)
   if (row) {
     const range =
-      typeof row.range === "number"
+      typeof row.range === 'number'
         ? new Range(row.range)
         : new Range(row.range[0], row.range[1])
 

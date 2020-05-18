@@ -1,7 +1,7 @@
-import {RegisteredTable} from "./tables"
+import {RegisteredTable} from './tables'
 
 export interface Drop {
-  type: "highest" | "lowest"
+  type: 'highest' | 'lowest'
   number: number
 }
 

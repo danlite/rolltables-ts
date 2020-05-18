@@ -1,18 +1,18 @@
-import chalk from "chalk"
-import * as fs from "fs"
-import {basename, dirname, extname, resolve} from "path"
-import * as YAML from "yaml"
+import chalk from 'chalk'
+import * as fs from 'fs'
+import {basename, dirname, extname, resolve} from 'path'
+import * as YAML from 'yaml'
 import {
   formatDice,
   getDimensionIdentifiers,
   prepareMultiDimensionalTable,
   prepareTable,
-} from "./rolltables"
-import {MultiDimensionalTable, Table, TableBundle, TableRef} from "./types"
+} from './rolltables'
+import {MultiDimensionalTable, Table, TableBundle, TableRef} from './types'
 
 const DEBUG = false
-const TABLE_ROOT = "/Users/dan/workspace/rolltables-private/tables"
-const YAML_EXT = ".yml"
+const TABLE_ROOT = '/Users/dan/workspace/rolltables-private/tables'
+const YAML_EXT = '.yml'
 
 interface Registered {
   identifier: string
@@ -28,7 +28,7 @@ export type RegisteredRollable = RegisteredTable | RegisteredBundle
 export const isBundle = (
   obj: RegisteredRollable | null,
 ): obj is RegisteredBundle => {
-  return obj !== null && "tables" in obj && obj.tables !== undefined
+  return obj !== null && 'tables' in obj && obj.tables !== undefined
 }
 
 export const isTable = (
@@ -36,9 +36,9 @@ export const isTable = (
 ): obj is RegisteredTable => {
   return (
     obj !== null &&
-    "rows" in obj &&
+    'rows' in obj &&
     obj.rows !== undefined &&
-    !("dimensions" in obj)
+    !('dimensions' in obj)
   )
 }
 
@@ -47,9 +47,9 @@ export const isMultiDimensionalTable = (
 ): obj is RegisteredMultiDimensionalTable => {
   return (
     obj !== null &&
-    "rows" in obj &&
+    'rows' in obj &&
     obj.rows !== undefined &&
-    "dimensions" in obj
+    'dimensions' in obj
   )
 }
 
@@ -64,7 +64,7 @@ export const showRegistry = (): void => {
           dice: isTable(rollable) ? formatDice(rollable.dice) : undefined,
         }),
       )
-      .join("\n"),
+      .join('\n'),
   )
 }
 
@@ -75,7 +75,7 @@ const registerRollable = (
   table: Table | TableBundle,
   identifier: string,
 ): RegisteredRollable => {
-  if (!identifier.startsWith("/")) {
+  if (!identifier.startsWith('/')) {
     throw new Error('identifier must be absolute (start with "/")')
   }
   const registeredRollable = {
@@ -90,9 +90,9 @@ export const loadMultiBundle = async (
   identifier: string,
 ): Promise<Registry> => {
   const contents = fs.readFileSync(
-    resolve(TABLE_ROOT, "." + identifier + ".multibundle" + YAML_EXT),
+    resolve(TABLE_ROOT, '.' + identifier + '.multibundle' + YAML_EXT),
     {
-      encoding: "utf8",
+      encoding: 'utf8',
     },
   )
 
@@ -105,7 +105,7 @@ export const loadMultiBundle = async (
     const bundleRef = yml.bundles[bundleKey]
     const bundleIdentifier = resolve(
       dirname(identifier),
-      bundleRef.relative ? bundleRef.relative : "",
+      bundleRef.relative ? bundleRef.relative : '',
       bundleKey,
     )
     output[bundleKey] = registerRollable(bundleRef.bundle, bundleIdentifier)
@@ -124,12 +124,12 @@ const registerRollables = (
     (identifierSuffixes === undefined ||
       identifierSuffixes.length < tables.length)
   ) {
-    throw new Error("must provide identifier suffixes for each rollable")
+    throw new Error('must provide identifier suffixes for each rollable')
   }
 
   return tables.map((table, index) => {
     const fullIdentifier = identifierSuffixes
-      ? identifier + "/" + identifierSuffixes[index]
+      ? identifier + '/' + identifierSuffixes[index]
       : identifier
     return registerRollable(table, fullIdentifier)
   })
@@ -138,13 +138,13 @@ const registerRollables = (
 const registerTableFromYaml = (
   filePath: string,
 ): RegisteredRollable | RegisteredRollable[] => {
-  let identifierPath = dirname(filePath.replace(TABLE_ROOT, ""))
-  if (!identifierPath.endsWith("/")) {
-    identifierPath += "/"
+  let identifierPath = dirname(filePath.replace(TABLE_ROOT, ''))
+  if (!identifierPath.endsWith('/')) {
+    identifierPath += '/'
   }
   const identifier = identifierPath + basename(filePath, YAML_EXT)
   const contents = fs.readFileSync(filePath, {
-    encoding: "utf8",
+    encoding: 'utf8',
   })
   const yml = YAML.parse(contents)
 
@@ -161,7 +161,7 @@ const registerTableFromYaml = (
     )
   } else {
     console.log(yml)
-    throw new Error("not proper format for table/bundle")
+    throw new Error('not proper format for table/bundle')
     // return null
   }
 
@@ -172,19 +172,19 @@ export const getRollable = async (
   path: string,
   relativeTo?: RegisteredRollable | string,
 ): Promise<RegisteredRollable> => {
-  if (path.startsWith(".")) {
+  if (path.startsWith('.')) {
     if (!relativeTo) {
-      throw new Error("trying to get relative table without reference")
+      throw new Error('trying to get relative table without reference')
     }
     const referencePath = resolve(
-      "/",
-      typeof relativeTo === "string"
+      '/',
+      typeof relativeTo === 'string'
         ? dirname(relativeTo)
         : dirname(relativeTo.identifier),
     )
     path = resolve(referencePath, path)
-  } else if (!path.startsWith("/")) {
-    path = "/" + path
+  } else if (!path.startsWith('/')) {
+    path = '/' + path
   }
   if (path in registry) {
     return registry[path]
@@ -194,7 +194,7 @@ export const getRollable = async (
   // const localPath = '.' + path
   const registered = registerTableFromYaml(path)
   if (Array.isArray(registered)) {
-    throw new Error("not a single rollable")
+    throw new Error('not a single rollable')
   }
   return registered
 }
@@ -216,23 +216,23 @@ const loadTablesInDirectory = async (
     const stats = fs.statSync(entryPath)
     if (stats.isDirectory()) {
       if (DEBUG) {
-        console.debug("  ".repeat(indent) + chalk.cyan(entry))
+        console.debug('  '.repeat(indent) + chalk.cyan(entry))
       }
       loadTablesInDirectory(entryPath, indent + 1)
     } else if (
       extname(entryPath) === YAML_EXT &&
-      basename(entryPath, YAML_EXT).endsWith(".multibundle")
+      basename(entryPath, YAML_EXT).endsWith('.multibundle')
     ) {
       if (DEBUG) {
-        console.debug("  ".repeat(indent) + chalk.magenta(entry))
+        console.debug('  '.repeat(indent) + chalk.magenta(entry))
       }
       // console.log(entryPath.split(TABLE_ROOT)[1].split(".multibundle")[0])
       await loadMultiBundle(
-        entryPath.split(TABLE_ROOT)[1].split(".multibundle")[0],
+        entryPath.split(TABLE_ROOT)[1].split('.multibundle')[0],
       )
     } else if (extname(entryPath) === YAML_EXT) {
       if (DEBUG) {
-        console.debug("  ".repeat(indent) + chalk.whiteBright(entry))
+        console.debug('  '.repeat(indent) + chalk.whiteBright(entry))
       }
       registerTableFromYaml(entryPath)
     }

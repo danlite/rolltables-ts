@@ -1,4 +1,4 @@
-import {getRegistry, loadAllTables} from "./tables"
+import {getRegistry, loadAllTables} from './tables'
 
 if (require.main === module) {
   loadAllTables().then(() => {
