@@ -1,5 +1,6 @@
 import chalk from 'chalk'
-import {evaluatePlaceholders, parseDice} from '../rolltables'
+import {evaluatePlaceholders} from '../rolltables'
+import {parseDice} from '../parse'
 
 describe('parse dice strings', () => {
   test('implied 1 count', () => {
