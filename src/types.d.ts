@@ -1,4 +1,5 @@
-import {RegisteredTable} from './tables'
+import {RegisteredTable} from './RegisteredTable'
+import {EvaluatedTableRow} from './EvaluatedTableRow'
 
 export interface Drop {
   type: 'highest' | 'lowest'
@@ -22,12 +23,6 @@ interface TableBundleContext extends TableRowContext {
 
 export type Die = DieStructure
 
-export interface TableRow {
-  range: number[] | number
-  text: string
-  meta?: TableRef[]
-}
-
 export interface MultiDimensionalTableRow {
   range: string
   text: string
@@ -36,23 +31,6 @@ export interface MultiDimensionalTableRow {
 
 interface PlaceholderEvaluationResults {
   [k: string]: {dice: Die[]; result: DiceRollResult}
-}
-
-type EvaluatedTableRow = TableRow & {
-  roll: number
-  evaluation: PlaceholderEvaluationResults
-  evaluatedMeta?: RollResult[][]
-}
-
-export interface Table {
-  dice: Die[]
-  rows: TableRow[]
-  title: string
-  inputs?: {[key: string]: TableRef}
-  extraResults?: string
-  autoEvaluate?: boolean
-  selectable?: boolean
-  selectablePrompt?: string
 }
 
 export interface MultiDimensionalTable {

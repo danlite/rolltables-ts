@@ -1,5 +1,6 @@
-import {TableRow, Die} from './types'
+import {Die} from './types'
 import {parseRollInteger} from './parse'
+import {TableRow} from './TableRow'
 
 export const parseRange = (range: string): [number, number] | number | null => {
   const match = range.trim().match(/^(\d+)(?:[^\d](\d+))?$/)

@@ -2,12 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import chalk from 'chalk'
 import {basename} from 'path'
-import {
-  evaluateRowMeta,
-  rollBundleOrTable,
-  rollOnTable,
-  testTable,
-} from './rolltables'
+import {rollBundleOrTable, testTable} from './rolltables'
 import * as tables from './tables'
 import {RollResult, TableBundle} from './types'
 
@@ -18,7 +13,7 @@ const hoard = async () => {
   }
   let result
   do {
-    result = await rollOnTable(table)
+    result = await table.roll()
   } while (
     !result.row ||
     result.row.meta === undefined ||
@@ -31,7 +26,7 @@ const hoard = async () => {
   console.log(result.row.text)
   console.log()
   console.log(
-    (await evaluateRowMeta(result.row, table, 0))
+    (await result.row.evaluateMeta(table, 0))
       .map((t) =>
         t
           .map(
@@ -54,7 +49,7 @@ const cantrip = async () => {
   if (!tables.isTable(spells)) {
     return
   }
-  const result = await rollOnTable(spells)
+  const result = await spells.roll()
   console.log(result.row.text)
   console.log('\n')
 }
@@ -65,7 +60,7 @@ const sylvan = async () => {
   if (!tables.isTable(table)) {
     return
   }
-  const result = await rollOnTable(table) // , sylvan.dice, 8)
+  const result = await table.roll() // , sylvan.dice, 8)
   console.log(result.row.text)
   console.log('\n')
 }
@@ -77,10 +72,10 @@ const villain = async () => {
     return
   }
   // console.log(table)
-  const result = await rollOnTable(table)
+  const result = await table.roll()
   console.log(result.row.text)
   console.log(
-    (await evaluateRowMeta(result.row, table, 0))
+    (await result.row.evaluateMeta(table, 0))
       .map((t) =>
         t
           .map(
@@ -101,10 +96,10 @@ const randomTableRoll = async () => {
   const table = tables.randomTable()
   // const table = await tables.loadTable('dmg/dungeons/random/chamber-exit-type')
   console.log(table.title)
-  const result = await rollOnTable(table)
+  const result = await table.roll()
   console.log(result.row.text)
   console.log(
-    (await evaluateRowMeta(result.row, table, 0))
+    (await result.row.evaluateMeta(table, 0))
       .map((referencedTable) =>
         referencedTable
           .map(
@@ -197,7 +192,7 @@ const dwarves = async () => {
   if (!tables.isTable(table)) {
     return
   }
-  const result = await rollOnTable(table)
+  const result = await table.roll()
   console.log(result.extraResults && result.extraResults.text)
   console.log(result.row.text)
 }

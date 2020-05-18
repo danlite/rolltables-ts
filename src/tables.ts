@@ -3,12 +3,13 @@ import * as fs from 'fs'
 import {basename, dirname, extname, resolve} from 'path'
 import * as YAML from 'yaml'
 import {
-  formatDice,
   getDimensionIdentifiers,
   prepareMultiDimensionalTable,
   prepareTable,
-} from './rolltables'
-import {MultiDimensionalTable, Table, TableBundle, TableRef} from './types'
+} from './prepare'
+import {MultiDimensionalTable, TableBundle, TableRef} from './types'
+import {formatDice} from './dice'
+import {RegisteredTable, Table} from './RegisteredTable'
 
 const DEBUG = false
 const TABLE_ROOT = '/Users/dan/workspace/rolltables-private/tables'
@@ -20,7 +21,6 @@ interface Registered {
 
 type Registry = {[key: string]: RegisteredRollable}
 
-export type RegisteredTable = Table & Registered
 export type RegisteredMultiDimensionalTable = MultiDimensionalTable & Registered
 export type RegisteredBundle = TableBundle & Registered
 export type RegisteredRollable = RegisteredTable | RegisteredBundle
@@ -72,16 +72,34 @@ export const getRegistry = (): Registry => registry
 export const getRegistryKeys = (): string[] => Object.keys(registry)
 
 const registerRollable = (
-  table: Table | TableBundle,
+  tableOrBundle: Table | TableBundle,
   identifier: string,
 ): RegisteredRollable => {
   if (!identifier.startsWith('/')) {
     throw new Error('identifier must be absolute (start with "/")')
   }
-  const registeredRollable = {
-    ...table,
-    identifier,
+  let registeredRollable: RegisteredRollable
+  if ('tables' in tableOrBundle) {
+    const bundle = tableOrBundle
+    registeredRollable = {
+      ...bundle,
+      identifier,
+    }
+  } else {
+    const table = tableOrBundle
+    registeredRollable = new RegisteredTable(
+      identifier,
+      table.dice,
+      table.rows,
+      table.title,
+      table.inputs,
+      table.extraResults,
+      table.autoEvaluate,
+      table.selectable,
+      table.selectablePrompt,
+    )
   }
+
   registry[identifier] = registeredRollable
   return registeredRollable
 }
