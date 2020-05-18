@@ -1,5 +1,5 @@
 import chalk from 'chalk'
-import {evaluatePlaceholders} from '../rolltables'
+import {evaluatePlaceholders} from '../evaluate'
 import {parseDice} from '../parse'
 
 describe('parse dice strings', () => {
