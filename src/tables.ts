@@ -18,6 +18,8 @@ interface Registered {
   identifier: string
 }
 
+type Registry = {[key: string]: RegisteredRollable}
+
 export type RegisteredTable = Table & Registered
 export type RegisteredMultiDimensionalTable = MultiDimensionalTable & Registered
 export type RegisteredBundle = TableBundle & Registered
@@ -52,7 +54,7 @@ export const isMultiDimensionalTable = (
 }
 
 const registry: {[path: string]: RegisteredRollable} = {}
-export const showRegistry = () => {
+export const showRegistry = (): void => {
   console.log(
     Object.values(registry)
       .map((rollable) =>
@@ -66,10 +68,27 @@ export const showRegistry = () => {
   )
 }
 
-export const getRegistry = () => registry
-export const getRegistryKeys = () => Object.keys(registry)
+export const getRegistry = (): Registry => registry
+export const getRegistryKeys = (): string[] => Object.keys(registry)
 
-export const loadMultiBundle = async (identifier: string) => {
+const registerRollable = (
+  table: Table | TableBundle,
+  identifier: string,
+): RegisteredRollable => {
+  if (!identifier.startsWith("/")) {
+    throw new Error('identifier must be absolute (start with "/")')
+  }
+  const registeredRollable = {
+    ...table,
+    identifier,
+  }
+  registry[identifier] = registeredRollable
+  return registeredRollable
+}
+
+export const loadMultiBundle = async (
+  identifier: string,
+): Promise<Registry> => {
   const contents = fs.readFileSync(
     resolve(TABLE_ROOT, "." + identifier + ".multibundle" + YAML_EXT),
     {
@@ -95,10 +114,64 @@ export const loadMultiBundle = async (identifier: string) => {
   return output
 }
 
+const registerRollables = (
+  tables: Array<Table | TableBundle>,
+  identifier: string,
+  identifierSuffixes?: string[],
+): RegisteredRollable[] => {
+  if (
+    tables.length > 1 &&
+    (identifierSuffixes === undefined ||
+      identifierSuffixes.length < tables.length)
+  ) {
+    throw new Error("must provide identifier suffixes for each rollable")
+  }
+
+  return tables.map((table, index) => {
+    const fullIdentifier = identifierSuffixes
+      ? identifier + "/" + identifierSuffixes[index]
+      : identifier
+    return registerRollable(table, fullIdentifier)
+  })
+}
+
+const registerTableFromYaml = (
+  filePath: string,
+): RegisteredRollable | RegisteredRollable[] => {
+  let identifierPath = dirname(filePath.replace(TABLE_ROOT, ""))
+  if (!identifierPath.endsWith("/")) {
+    identifierPath += "/"
+  }
+  const identifier = identifierPath + basename(filePath, YAML_EXT)
+  const contents = fs.readFileSync(filePath, {
+    encoding: "utf8",
+  })
+  const yml = YAML.parse(contents)
+
+  let rollable: Table | TableBundle
+  if (isBundle(yml)) {
+    rollable = yml
+  } else if (isTable(yml)) {
+    rollable = prepareTable(yml)
+  } else if (isMultiDimensionalTable(yml)) {
+    return registerRollables(
+      prepareMultiDimensionalTable(yml),
+      identifier,
+      getDimensionIdentifiers(yml),
+    )
+  } else {
+    console.log(yml)
+    throw new Error("not proper format for table/bundle")
+    // return null
+  }
+
+  return registerRollable(rollable, identifier)
+}
+
 export const getRollable = async (
   path: string,
   relativeTo?: RegisteredRollable | string,
-) => {
+): Promise<RegisteredRollable> => {
   if (path.startsWith(".")) {
     if (!relativeTo) {
       throw new Error("trying to get relative table without reference")
@@ -134,75 +207,10 @@ export const makeTableRef = (
   rollCount: count === undefined ? 1 : count,
 })
 
-const registerRollables = (
-  tables: Array<Table | TableBundle>,
-  identifier: string,
-  identifierSuffixes?: string[],
-): RegisteredRollable[] => {
-  if (
-    tables.length > 1 &&
-    (identifierSuffixes === undefined ||
-      identifierSuffixes.length < tables.length)
-  ) {
-    throw new Error("must provide identifier suffixes for each rollable")
-  }
-
-  return tables.map((table, index) => {
-    const fullIdentifier = identifierSuffixes
-      ? identifier + "/" + identifierSuffixes[index]
-      : identifier
-    return registerRollable(table, fullIdentifier)
-  })
-}
-
-const registerRollable = (
-  table: Table | TableBundle,
-  identifier: string,
-): RegisteredRollable => {
-  if (!identifier.startsWith("/")) {
-    throw new Error('identifier must be absolute (start with "/")')
-  }
-  const registeredRollable = {
-    ...table,
-    identifier,
-  }
-  registry[identifier] = registeredRollable
-  return registeredRollable
-}
-
-const registerTableFromYaml = (filePath: string) => {
-  let identifierPath = dirname(filePath.replace(TABLE_ROOT, ""))
-  if (!identifierPath.endsWith("/")) {
-    identifierPath += "/"
-  }
-  const identifier = identifierPath + basename(filePath, YAML_EXT)
-  const identifierSuffixes: string[] | null = null
-  const contents = fs.readFileSync(filePath, {
-    encoding: "utf8",
-  })
-  const yml = YAML.parse(contents)
-
-  let rollable: Table | TableBundle
-  if (isBundle(yml)) {
-    rollable = yml
-  } else if (isTable(yml)) {
-    rollable = prepareTable(yml)
-  } else if (isMultiDimensionalTable(yml)) {
-    return registerRollables(
-      prepareMultiDimensionalTable(yml),
-      identifier,
-      getDimensionIdentifiers(yml),
-    )
-  } else {
-    console.log(yml)
-    throw new Error("not proper format for table/bundle")
-    // return null
-  }
-
-  return registerRollable(rollable, identifier)
-}
-
-const loadTablesInDirectory = async (dir: string, indent: number = 0) => {
+const loadTablesInDirectory = async (
+  dir: string,
+  indent = 0,
+): Promise<void> => {
   for (const entry of fs.readdirSync(dir)) {
     const entryPath = resolve(dir, entry)
     const stats = fs.statSync(entryPath)
@@ -231,16 +239,17 @@ const loadTablesInDirectory = async (dir: string, indent: number = 0) => {
   }
 }
 
-export const loadAllTables = async () => {
+export const loadAllTables = async (): Promise<RegisteredRollable[]> => {
   await loadTablesInDirectory(TABLE_ROOT)
   return Object.values(registry)
 }
 
-export const tablesInDirectory = (dir: string) => () =>
+export const tablesInDirectory = (dir: string) => (): RegisteredRollable[] =>
   Object.values(registry).filter((t) => t.identifier.startsWith(dir))
 
-export const randomTable = () => {
+export const randomTable = (): RegisteredTable => {
   const rollables = Object.values(registry)
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     const rollable = rollables[Math.floor(Math.random() * rollables.length)]
     if (isTable(rollable)) {

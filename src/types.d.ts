@@ -51,6 +51,8 @@ export interface Table {
   inputs?: {[key: string]: TableRef}
   extraResults?: string
   autoEvaluate?: boolean
+  selectable?: boolean
+  selectablePrompt?: string
 }
 
 export interface MultiDimensionalTable {

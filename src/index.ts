@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import chalk from "chalk"
 import {basename} from "path"
 import {
@@ -156,6 +158,24 @@ const randomTableRoll = async () => {
 //   return tableResults
 // }
 
+const showTableResults = (tableResults: RollResult[]) => {
+  let shownTitle = ""
+  for (const result of tableResults) {
+    if (shownTitle !== result.table.title) {
+      console.log(chalk.keyword("orange")(result.table.title))
+      shownTitle = result.table.title
+    }
+    console.group()
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    showRollResult(result)
+    console.groupEnd()
+  }
+}
+
+export const showMetaTableResults = (metaTableResults: RollResult[][]) => {
+  metaTableResults.forEach((r) => showTableResults(r))
+}
+
 export const showRollResult = (result: RollResult) => {
   console.log(
     (result.extraResults
@@ -168,23 +188,6 @@ export const showRollResult = (result: RollResult) => {
   if (result.row.evaluatedMeta) {
     console.group()
     showMetaTableResults(result.row.evaluatedMeta)
-    console.groupEnd()
-  }
-}
-
-export const showMetaTableResults = (metaTableResults: RollResult[][]) => {
-  metaTableResults.forEach((r) => showTableResults(r))
-}
-
-const showTableResults = (tableResults: RollResult[]) => {
-  let shownTitle: string = ""
-  for (const result of tableResults) {
-    if (shownTitle !== result.table.title) {
-      console.log(chalk.keyword("orange")(result.table.title))
-      shownTitle = result.table.title
-    }
-    console.group()
-    showRollResult(result)
     console.groupEnd()
   }
 }

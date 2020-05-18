@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-use-before-define */
 import chalk from "chalk"
+import * as inquirer from "inquirer"
 import {
   getRollable,
   isBundle,
@@ -8,7 +10,6 @@ import {
 import {
   DiceRollResult,
   Die,
-  Drop,
   EvaluatedTableRow,
   MultiDimensionalTable,
   MultiDimensionalTableRow,
@@ -21,88 +22,15 @@ import {
   TableRow,
   TableRowContext,
 } from "./types"
-
-const parseInteger = (s: string) => parseInt(s, 10)
-const parseRollInteger = (s: string) => (s === "00" ? 100 : parseInteger(s))
-const parseKeepDrop = (s: string | undefined, numDice: number) => {
-  const res: Drop = {
-    type: "lowest",
-    number: 0,
-  }
-  const match = s ? s.match(/([kd])([hl])?(\d+)/) : null
-  if (!match) {
-    return res
-  }
-
-  res.number = parseInt(match[3], 10)
-
-  const action = match[1] as "k" | "d"
-  let cohort: "h" | "l" =
-    (match[2] as "h" | "l" | undefined) || (action === "k" ? "h" : "l")
-
-  if (action === "k") {
-    cohort = cohort === "h" ? "l" : "h"
-    res.number = Math.max(0, numDice - res.number)
-  }
-  res.type = cohort === "l" ? "lowest" : "highest"
-
-  return res
-}
-
-const parseDie = (text: string): Die | null => {
-  // Optional negative: (-)?
-  // Optional number of dice: (\d*)
-  // The letter D: d
-  // Die sides: (\d+)
-  // Keep/drop: ([kd][hl]?\d+)?
-  // Optional multiplier: (?:\*(-?\d+))?
-  const match = text.match(/(-)?(\d*)d(\d+)([kd][hl]?\d+)?(?:\*(-?\d+))?/)
-  if (match) {
-    const multiplierFromSign = match[1] ? -1 : 1
-    const count = parseInteger(match[2]) || 1
-    const keepDrop = parseKeepDrop(match[4], count)
-    const extraMultiplier = match[5] ? parseInteger(match[5]) : 1
-    return {
-      count,
-      multiplier: multiplierFromSign * extraMultiplier,
-      sides: parseInteger(match[3]),
-      drop: keepDrop.number ? keepDrop : undefined,
-    }
-  }
-
-  const constant = parseInteger(text)
-  if (isNaN(constant)) {
-    return null
-  }
-  return {
-    count: Math.abs(constant),
-    multiplier: constant === 0 ? 1 : constant / Math.abs(constant),
-    sides: 1,
-  }
-}
-
-export const parseDice = (text: string): Die[] => {
-  const pattern = /(^|[-+])[^-+]+/g
-  const diceMatches = text.replace(/\s/g, "").match(pattern)
-  if (!diceMatches) {
-    return []
-  }
-  const dice: Die[] = []
-  diceMatches.forEach((matchText) => {
-    const die = parseDie(matchText)
-    if (die !== null) {
-      dice.push(die)
-    }
-  })
-  return dice
-}
+import {parseRange, getDiceRange, Range, rangeMin} from "./range"
+import {parseDice, parseInteger} from "./parse"
 
 const ROW_SEPARATOR = "|"
 
 export const parseRollTableRows = (
   texts: string | Array<string | TableRef>,
   simple?: boolean,
-) => {
+): TableRow[] => {
   if (typeof texts === "string") {
     texts = [texts]
   }
@@ -148,70 +76,7 @@ export const parseRollTableRows = (
   return ret
 }
 
-const parseRange = (range: string) => {
-  const match = range.trim().match(/^(\d+)(?:[^\d](\d+))?$/)
-
-  if (!match) {
-    return null
-  }
-
-  if (match[2]) {
-    return [parseRollInteger(match[1]), parseRollInteger(match[2])]
-  }
-
-  return parseRollInteger(match[1])
-}
-
-interface Range {
-  min: number
-  max: number
-}
-
-class Range implements Range {
-  constructor(...numbers: [number] | [number, number]) {
-    this.min = Math.min(...numbers)
-    this.max = Math.max(...numbers)
-  }
-
-  public multiply(factor: number) {
-    return new Range(this.min * factor, this.max * factor)
-  }
-
-  public add(range: Range) {
-    return new Range(this.min + range.min, this.max + range.max)
-  }
-
-  public members() {
-    const members: number[] = []
-    for (let i = this.min; i <= this.max; i++) {
-      members.push(i)
-    }
-    return members
-  }
-
-  public toString() {
-    return `[${this.min},${this.max}]`
-  }
-}
-
-const getDieRange = (die: Die): Range => {
-  if (typeof die === "number") {
-    return new Range(die)
-  } else {
-    const dropped = die.drop ? die.drop.number : 0
-    const count = die.count - dropped
-    const result: Range = new Range(count, count * die.sides)
-    return result.multiply(die.multiplier)
-  }
-}
-
-const getDiceRange = (dice: Die[]): Range => {
-  return dice.reduce((result: Range, die: Die) => {
-    return getDieRange(die).add(result)
-  }, new Range(0))
-}
-
-const validateTable = (table: Table) => {
+const validateTable = (table: Table): boolean => {
   const {rows, dice} = table
   let min = 99999999
   let max = -99999999
@@ -290,7 +155,10 @@ const rollDice = (dice: Die[]): DiceRollResult => {
   return {total, rolls}
 }
 
-const rowForRoll = (table: RegisteredTable, roll: number) => {
+const rowForRoll = (
+  table: RegisteredTable,
+  roll: number,
+): TableRow | undefined => {
   const row = table.rows.find(numberMatchesRow(roll))
   const tableRange = getDiceRange(table.dice)
   if (roll < tableRange.min) {
@@ -313,6 +181,27 @@ export const rollOnTable = async (
   opts: TableRollOptions = {},
 ): Promise<RollResult> => {
   let {dice, total, currentDepth} = opts
+  if (table.selectable && total === undefined) {
+    let selectedTotal = 1
+    // TODO: only in context of CLI
+    // eslint-disable-next-line no-constant-condition
+    if (true) {
+      const answer = await inquirer.prompt([
+        {
+          message: table.selectablePrompt,
+          name: "rowSelection",
+          type: "list",
+          choices: table.rows.map((r) => ({
+            name: r.text,
+            short: r.text,
+            value: rangeMin(r),
+          })),
+        },
+      ])
+      selectedTotal = answer.rowSelection
+    }
+    return rollOnTable(table, {...opts, total: selectedTotal})
+  }
   const {modifier, reroll} = opts
   if (currentDepth === undefined) {
     currentDepth = 0
@@ -369,7 +258,7 @@ export const rollOnTable = async (
 export const evaluateRollResultTables = async (
   rollResult: RollResult,
   currentDepth: number,
-) => {
+): Promise<RollResult[][]> => {
   if (!rollResult.evaluatedTables) {
     rollResult.evaluatedTables = await evaluateRowMeta(
       rollResult.row,
@@ -388,7 +277,7 @@ interface TextInputModifiers {
   index?: number
 }
 
-const patternFromKey = (key: string) =>
+const patternFromKey = (key: string): RegExp =>
   new RegExp(
     "\\[" +
       key +
@@ -399,7 +288,10 @@ const patternFromKey = (key: string) =>
       "\\]",
   )
 
-const modifiersFromTextAndKey = (text: string, key: string) => {
+const modifiersFromTextAndKey = (
+  text: string,
+  key: string,
+): TextInputModifiers => {
   const modifiers: TextInputModifiers = {}
 
   const pattern = patternFromKey(key)
@@ -438,7 +330,7 @@ const applyInputsToText = async (
   text: string,
   table: RegisteredTable,
   existingInputValues?: {[key: string]: string[]},
-) => {
+): Promise<string> => {
   if (!table.inputs) {
     return text
   }
@@ -556,8 +448,8 @@ const rollTableRef = async (
   tableRef: TableRef,
   context: TableRowContext,
   relativeToTable?: RegisteredTable | string,
-  currentDepth: number = 0,
-) => {
+  currentDepth = 0,
+): Promise<RollResult[]> => {
   let results: RollResult[] = []
   const otherRollable = await getRollable(tableRef.path, relativeToTable)
   const rollCount = valueInContext(tableRef.rollCount, context, 1)
@@ -598,7 +490,7 @@ const rollTableRef = async (
   return results
 }
 
-const numberMatchesRow = (n: number) => (row: TableRow) => {
+const numberMatchesRow = (n: number) => (row: TableRow): boolean => {
   if (typeof row.range === "number") {
     if (row.range === n) {
       return true
@@ -609,14 +501,18 @@ const numberMatchesRow = (n: number) => (row: TableRow) => {
   return row.range[0] <= n && row.range[1] >= n
 }
 
-const isTableRowArray = (input: string | any[]): input is TableRow[] =>
+const isTableRowArray = (
+  input: string | Array<string | TableRow | TableRef>,
+): input is TableRow[] =>
   typeof input !== "string" &&
+  typeof input[0] !== "string" &&
+  !("path" in input[0]) &&
   input[0].range !== undefined &&
   input[0].text !== undefined
 
 export const getDimensionIdentifiers = (
   table: Pick<MultiDimensionalTable, "dimensions">,
-) =>
+): string[] =>
   table.dimensions.map((dim) =>
     dim
       .toLowerCase()
@@ -674,9 +570,24 @@ export const prepareTable = (
   input: {
     dice?: Die[] | string
     rows: TableRow[] | string | Array<string | TableRef>
-  } & Pick<Table, "title" | "extraResults" | "autoEvaluate" | "inputs">,
+  } & Pick<
+    Table,
+    | "title"
+    | "extraResults"
+    | "autoEvaluate"
+    | "inputs"
+    | "selectable"
+    | "selectablePrompt"
+  >,
 ): Table => {
-  const {title, extraResults, rows, inputs} = input
+  const {
+    title,
+    extraResults,
+    rows,
+    inputs,
+    selectable,
+    selectablePrompt,
+  } = input
   const autoEvaluate =
     input.autoEvaluate === undefined ? true : input.autoEvaluate
   let {dice} = input
@@ -701,6 +612,8 @@ export const prepareTable = (
     autoEvaluate,
     extraResults,
     inputs,
+    selectable,
+    selectablePrompt,
     dice: parsedDice,
     rows: parsedRows,
   }
@@ -731,7 +644,7 @@ export const prepareSimpleTable = (
   return table
 }
 
-export const formatDice = (dice: Die[]) => {
+export const formatDice = (dice: Die[]): string => {
   let result = ""
   for (const die of dice) {
     const sign = die.multiplier >= 0 ? "+" : "-"
@@ -754,13 +667,19 @@ export const formatDice = (dice: Die[]) => {
   return result
 }
 
-export const evaluatePlaceholders = (text: string) => {
+export const evaluatePlaceholders = (
+  text: string,
+): {
+  text: string
+  results: PlaceholderEvaluationResults
+} => {
   const results: PlaceholderEvaluationResults = {}
 
   // [[@key:4d6]]
   let match
+  // eslint-disable-next-line no-constant-condition
   while (true) {
-    match = text.match(/\[\[@(\w+):([^\[\]]+)\]\]/)
+    match = text.match(/\[\[@(\w+):([^[\]]+)\]\]/)
     if (match) {
       const dice = parseDice(match[2])
       const diceResult = rollDice(dice)
@@ -790,6 +709,7 @@ export const evaluatePlaceholders = (text: string) => {
   const percentSections: PercentSection[] = []
 
   // [[text (50%)]]
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     match = text.match(
       /\[\[(?<text1>[^\]]+ \(?(?<number1>\d+)(?:%| percent)\)?)\]\]|\[\[(?<text2>\(?(?<number2>\d+)(?:%| percent)\)? [^\]]+)\]\]/,
@@ -853,7 +773,7 @@ export const evaluatePlaceholders = (text: string) => {
         section === chosenSection
           ? chosenStyle
           : firstWord.match(/^gr[ae]y$/)
-          ? (s: string) => s
+          ? (s: string): string => s
           : chalk.gray
 
       section.text = style(section.text)
@@ -870,7 +790,7 @@ export const evaluatePlaceholders = (text: string) => {
   }
 }
 
-export const testTable = async (table: RegisteredTable) => {
+export const testTable = async (table: RegisteredTable): Promise<void> => {
   const tableRange = getDiceRange(table.dice)
   let showedExtraResults = false
   console.log()
@@ -904,7 +824,7 @@ export const testTable = async (table: RegisteredTable) => {
 export const rollBundleOrTable = async (
   rollable: RegisteredBundle | RegisteredTable,
   opts: TableRollOptions = {},
-) => {
+): Promise<RollResult[][]> => {
   const currentDepth = opts.currentDepth || 0
   let context: TableBundleContext = {$previousRoll: 0}
   const tableResults: RollResult[][] = []
