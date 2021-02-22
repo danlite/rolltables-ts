@@ -116,6 +116,7 @@ export class RegisteredTable implements RegisteredTable {
       total,
       this,
       inputValues,
+      opts.context,
     )
     let evaluatedTables: RollResult[][] | undefined
     if (this.autoEvaluate && currentDepth < 10) {

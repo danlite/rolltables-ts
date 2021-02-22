@@ -15,16 +15,19 @@ export interface EvaluatedTableRow extends TableRow {
 }
 
 export class EvaluatedTableRow extends TableRow implements EvaluatedTableRow {
+  private _initialContext: TableRowContext | undefined
   constructor(
     row: TableRow,
     roll: number,
     evaluation: PlaceholderEvaluationResults,
     evaluatedMeta?: RollResult[][],
+    context?: TableRowContext,
   ) {
     super(row.range, row.text, row.meta)
     this.roll = roll
     this.evaluation = evaluation
     this.evaluatedMeta = evaluatedMeta
+    this._initialContext = context
   }
 
   static async fromRow(
@@ -32,6 +35,7 @@ export class EvaluatedTableRow extends TableRow implements EvaluatedTableRow {
     roll: number,
     table: RegisteredTable,
     inputValues?: {[key: string]: string[]},
+    context?: TableRowContext,
   ): Promise<EvaluatedTableRow> {
     const evaluation = evaluatePlaceholders(row.text)
     const textWithInputs = await applyInputsToText(
@@ -40,7 +44,13 @@ export class EvaluatedTableRow extends TableRow implements EvaluatedTableRow {
       inputValues,
     )
 
-    const evaluated = new EvaluatedTableRow(row, roll, evaluation.results)
+    const evaluated = new EvaluatedTableRow(
+      row,
+      roll,
+      evaluation.results,
+      undefined,
+      context,
+    )
     evaluated.text = textWithInputs
     return evaluated
   }
@@ -62,7 +72,7 @@ export class EvaluatedTableRow extends TableRow implements EvaluatedTableRow {
   }
 
   getContext(): TableRowContext {
-    const context: TableRowContext = {$roll: this.roll}
+    const context: TableRowContext = {...this._initialContext, $roll: this.roll}
     for (const identifier of Object.keys(this.evaluation)) {
       context[identifier] = this.evaluation[identifier].result.total
     }

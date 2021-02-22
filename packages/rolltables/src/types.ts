@@ -80,4 +80,5 @@ export interface TableRollOptions {
   modifier?: number
   reroll?: number[]
   currentDepth?: number
+  context?: TableRowContext
 }

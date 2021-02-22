@@ -61,12 +61,12 @@ export const rollBundleOrTable = async (
   opts: TableRollOptions = {},
 ): Promise<RollResult[][]> => {
   const currentDepth = opts.currentDepth || 0
-  const context: TableBundleContext = {$previousRoll: 0}
+  const context: TableBundleContext = {$previousRoll: 0, ...opts.context}
 
   if (isBundle(rollable)) {
     return await rollable.roll(context, currentDepth)
   } else {
-    return [[await rollable.roll({currentDepth})]]
+    return [[await rollable.roll({currentDepth, context})]]
   }
 }
 
@@ -89,12 +89,12 @@ export const rollTableRef = async (
     ? tableRef.ignore.map((i): number => valueInContext(i, context))
     : [valueInContext(tableRef.ignore, context, 99999)]
 
-  const rollOptions: TableRollOptions = {currentDepth}
+  const rollOptions: TableRollOptions = {currentDepth, context}
   if (tableRef.dice) {
     rollOptions.dice = parseDice(tableRef.dice)
   }
   if (tableRef.total) {
-    rollOptions.total = valueInContext(tableRef.total, context)
+    rollOptions.total = valueInContext(tableRef.total, context) || undefined
   }
 
   for (let i = 0; i < rollCount; i++) {
@@ -111,6 +111,7 @@ export const rollTableRef = async (
         ...rollOptions,
         modifier,
         reroll,
+        context,
       })
       results.push(result)
       if (tableRef.unique) {
@@ -128,7 +129,8 @@ export const testTable = async (table: RegisteredTable): Promise<void> => {
   console.log(chalk.gray(table.identifier))
   console.log(chalk.greenBright(table.title))
   for (let r = tableRange.min; r <= tableRange.max; r++) {
-    const result = await table.roll({dice: table.dice, total: r})
+    // TODO: remove `context: {}`
+    const result = await table.roll({dice: table.dice, total: r, context: {}})
     if (!showedExtraResults) {
       if (result.extraResults) {
         console.log(chalk.keyword('orange')(result.extraResults.text))
