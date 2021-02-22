@@ -86,7 +86,12 @@ export const rollTableRef = async (
   const rollCount = valueInContext(tableRef.rollCount, context, 1)
   const modifier = valueInContext(tableRef.modifier, context, 0)
   const reroll: number[] = Array.isArray(tableRef.ignore)
-    ? tableRef.ignore.map((i): number => valueInContext(i, context))
+    ? tableRef.ignore.flatMap((i): number | number[] => {
+        if (typeof i === 'string' && i.match(/^\d+-\d+$/)) {
+          return new Range(...i.split('-').map((j) => Number(j))).members()
+        }
+        return valueInContext(i, context)
+      })
     : [valueInContext(tableRef.ignore, context, 99999)]
 
   const rollOptions: TableRollOptions = {currentDepth, context}

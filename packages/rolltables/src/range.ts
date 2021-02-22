@@ -25,9 +25,9 @@ export class Range implements Range {
   public min: number
   public max: number
 
-  constructor(...numbers: [number] | [number, number]) {
-    this.min = Math.min(...numbers)
-    this.max = Math.max(...numbers)
+  constructor(...minAndMax: number[]) {
+    this.min = Math.min(...minAndMax)
+    this.max = Math.max(...minAndMax)
   }
 
   public multiply(factor: number): Range {
