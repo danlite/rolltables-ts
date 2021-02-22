@@ -3,12 +3,14 @@ import * as inquirer from 'inquirer'
 // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 // @ts-ignore
 import * as inquirerAutocomplete from 'inquirer-autocomplete-prompt'
-import {showMetaTableResults} from '.'
+import {showMetaTableResults} from './debug'
 import {evaluateRollResultTables, rollBundleOrTable} from './rolltables'
 import {getRegistryKeys, loadAllTables, getRollable} from './tables'
 import {RollResult} from './types'
 
 async function main(): Promise<void> {
+  process.env.ROLLTABLE_CLI = 'true'
+
   const sorter = fuzzysort.new({allowTypo: true})
 
   await loadAllTables()

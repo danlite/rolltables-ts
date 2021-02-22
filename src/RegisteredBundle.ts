@@ -35,6 +35,12 @@ export class RegisteredBundle implements RegisteredBundle {
         context = Object.assign(context, result.row.getContext(), {
           $previousRoll: result.total,
         })
+
+        if (tableRef.store) {
+          for (const [key, valueRef] of Object.entries(tableRef.store)) {
+            context = Object.assign(context, {[key]: context[valueRef]})
+          }
+        }
       }
     }
 

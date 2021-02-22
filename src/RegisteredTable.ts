@@ -73,7 +73,7 @@ export class RegisteredTable implements RegisteredTable {
       let selectedTotal = 1
       // TODO: only in context of CLI
       // eslint-disable-next-line no-constant-condition
-      if (true) {
+      if (process.env.ROLLTABLE_CLI) {
         const answer = await inquirer.prompt([
           {
             message: this.selectablePrompt,

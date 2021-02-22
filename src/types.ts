@@ -13,11 +13,11 @@ export interface DieStructure {
   drop?: Drop
 }
 
-interface TableRowContext {
+export interface TableRowContext {
   [k: string]: number
 }
 
-interface TableBundleContext extends TableRowContext {
+export interface TableBundleContext extends TableRowContext {
   $previousRoll: number
 }
 
@@ -29,7 +29,7 @@ export interface MultiDimensionalTableRow {
   meta?: TableRef[]
 }
 
-interface PlaceholderEvaluationResults {
+export interface PlaceholderEvaluationResults {
   [k: string]: {dice: Die[]; result: DiceRollResult}
 }
 
@@ -43,7 +43,7 @@ export interface MultiDimensionalTable {
   dimensions: string[]
 }
 
-interface TableRef {
+export interface TableRef {
   path: string // relative ("./gems" or "../../phb/classes") or absolute ("dmg/dungeons/location")
   title?: string
   rollCount?: number | string // constant number or key from context
@@ -52,15 +52,17 @@ interface TableRef {
   unique?: boolean
   ignore?: number | string | Array<number | string>
   modifier?: number | string
+  store?: {
+    [key: string]: '$roll'
+  }
 }
-type RowMetaFunction = (t: TableRowContext) => Promise<RollResult[]>
 
-interface DiceRollResult {
+export interface DiceRollResult {
   total: number
   rolls: number[][]
 }
 
-interface RollResult {
+export interface RollResult {
   table: RegisteredTable
   dice: Die[]
   total: number
@@ -72,7 +74,7 @@ interface RollResult {
   evaluatedTables?: RollResult[][]
 }
 
-interface TableRollOptions {
+export interface TableRollOptions {
   dice?: Die[]
   total?: number
   modifier?: number

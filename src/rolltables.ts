@@ -77,7 +77,12 @@ export const rollTableRef = async (
   currentDepth = 0,
 ): Promise<RollResult[]> => {
   let results: RollResult[] = []
-  const otherRollable = await getRollable(tableRef.path, relativeToTable)
+  const otherRollable = await getRollable(
+    tableRef.path,
+    typeof relativeToTable === 'string'
+      ? relativeToTable
+      : relativeToTable?.identifier,
+  )
   const rollCount = valueInContext(tableRef.rollCount, context, 1)
   const modifier = valueInContext(tableRef.modifier, context, 0)
   const reroll: number[] = Array.isArray(tableRef.ignore)

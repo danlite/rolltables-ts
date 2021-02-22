@@ -2,8 +2,8 @@
   "name": "rolltables",
   "version": "0.1.0",
   "description": "",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
     "chalk": "^2.4.2",
     "fuzzysort": "^1.1.4",
@@ -30,11 +30,11 @@
     "build": "tsc",
     "test": "jest",
     "cli": "ts-node ./src/cli.ts",
-    "debug": "ts-node ./src/index.ts"
+    "debug": "ts-node ./src/debug.ts"
   },
   "files": [
     "dist/**/*"
   ],
-  "author": "",
+  "author": "Dan Lichty <dan@lichty.ca>",
   "license": "ISC"
 }

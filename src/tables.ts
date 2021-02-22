@@ -13,7 +13,7 @@ import {RegisteredTable, Table} from './RegisteredTable'
 import {TableBundle, RegisteredBundle} from './RegisteredBundle'
 
 const DEBUG = false
-const TABLE_ROOT = '/Users/dan/workspace/rolltables-private/tables'
+const TABLE_ROOT = resolve('../rolltables-private/tables')
 const YAML_EXT = '.yml'
 
 interface Registered {
@@ -180,7 +180,7 @@ const registerTableFromYaml = (
     )
   } else {
     console.log(yml)
-    throw new Error('not proper format for table/bundle')
+    throw new Error(`not proper format for table/bundle ${filePath}`)
     // return null
   }
 
@@ -189,19 +189,19 @@ const registerTableFromYaml = (
 
 export const getRollable = async (
   path: string,
-  relativeTo?: RegisteredRollable | string,
+  relativeTo?: string,
 ): Promise<RegisteredRollable> => {
-  if (path.startsWith('.')) {
+  if (path.startsWith('.') || path.startsWith('$/')) {
     if (!relativeTo) {
       throw new Error('trying to get relative table without reference')
     }
-    const referencePath = resolve(
-      '/',
-      typeof relativeTo === 'string'
-        ? dirname(relativeTo)
-        : dirname(relativeTo.identifier),
-    )
-    path = resolve(referencePath, path)
+
+    const relativeToDir = path.startsWith('$/')
+      ? relativeTo
+      : dirname(relativeTo)
+
+    const referencePath = resolve('/', relativeToDir)
+    path = resolve(referencePath, path.replace(/^\$\//, ''))
   } else if (!path.startsWith('/')) {
     path = '/' + path
   }
@@ -258,8 +258,10 @@ const loadTablesInDirectory = async (
   }
 }
 
-export const loadAllTables = async (): Promise<RegisteredRollable[]> => {
-  await loadTablesInDirectory(TABLE_ROOT)
+export const loadAllTables = async (
+  root = TABLE_ROOT,
+): Promise<RegisteredRollable[]> => {
+  await loadTablesInDirectory(root)
   return Object.values(registry)
 }
 
