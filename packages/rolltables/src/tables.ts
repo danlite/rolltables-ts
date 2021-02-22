@@ -13,7 +13,7 @@ import {RegisteredTable, Table} from './RegisteredTable'
 import {TableBundle, RegisteredBundle} from './RegisteredBundle'
 
 const DEBUG = false
-const TABLE_ROOT = resolve('../rolltables-private/tables')
+const TABLE_ROOT = resolve('../../../rolltables-private/tables')
 const YAML_EXT = '.yml'
 
 interface Registered {
