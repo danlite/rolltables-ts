@@ -52,7 +52,7 @@ const valueInContext = (
     return value
   }
   if (typeof value === 'string' && value in context) {
-    return context[value] || defaultValue
+    return context[value] ?? defaultValue
   }
   return defaultValue
 }

@@ -2,15 +2,15 @@ import chalk from 'chalk'
 import * as fs from 'fs'
 import {basename, dirname, extname, resolve} from 'path'
 import * as YAML from 'yaml'
+import {formatDice} from './dice'
 import {
   getDimensionIdentifiers,
   prepareMultiDimensionalTable,
   prepareTable,
 } from './prepare'
-import {MultiDimensionalTable, TableRef} from './types'
-import {formatDice} from './dice'
+import {RegisteredBundle, TableBundle} from './RegisteredBundle'
 import {RegisteredTable, Table} from './RegisteredTable'
-import {TableBundle, RegisteredBundle} from './RegisteredBundle'
+import {MultiDimensionalTable, TableRef} from './types'
 
 const DEBUG = false
 const TABLE_ROOT = resolve('../../../rolltables-private/tables')
@@ -253,7 +253,12 @@ const loadTablesInDirectory = async (
       if (DEBUG) {
         console.debug('  '.repeat(indent) + chalk.whiteBright(entry))
       }
-      registerTableFromYaml(entryPath)
+      try {
+        registerTableFromYaml(entryPath)
+      } catch (e) {
+        console.error(e)
+        throw new Error(`error registering table ${entryPath}`)
+      }
     }
   }
 }

@@ -1,5 +1,5 @@
-import {TableRef, RollResult, TableBundleContext} from './types'
 import {rollTableRef} from './rolltables'
+import {RollResult, TableBundleContext, TableRef} from './types'
 
 export interface TableBundle {
   tables: TableRef[]
@@ -38,7 +38,11 @@ export class RegisteredBundle implements RegisteredBundle {
 
         if (tableRef.store) {
           for (const [key, valueRef] of Object.entries(tableRef.store)) {
-            context = Object.assign(context, {[key]: context[valueRef]})
+            let contextKey: string = valueRef
+            if (valueRef.startsWith('@')) {
+              contextKey = valueRef.slice(1)
+            }
+            context = Object.assign(context, {[key]: context[contextKey]})
           }
         }
       }

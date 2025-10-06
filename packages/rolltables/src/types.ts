@@ -1,5 +1,5 @@
-import {RegisteredTable} from './RegisteredTable'
 import {EvaluatedTableRow} from './EvaluatedTableRow'
+import {RegisteredTable} from './RegisteredTable'
 
 export interface Drop {
   type: 'highest' | 'lowest'
@@ -53,7 +53,7 @@ export interface TableRef {
   ignore?: number | string | Array<number | string>
   modifier?: number | string
   store?: {
-    [key: string]: '$roll'
+    [key: string]: '$roll' | `@${string}`
   }
 }
 
