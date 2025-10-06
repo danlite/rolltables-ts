@@ -1,38 +1,35 @@
+import {confirm, search} from '@inquirer/prompts'
 import * as fuzzysort from 'fuzzysort'
-import * as inquirer from 'inquirer'
-// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
-// @ts-ignore
-import * as inquirerAutocomplete from 'inquirer-autocomplete-prompt'
 import {showMetaTableResults} from './debug'
 import {evaluateRollResultTables, rollBundleOrTable} from './rolltables'
-import {getRegistryKeys, loadAllTables, getRollable} from './tables'
+import {getRegistryKeys, getRollable, loadAllTables} from './tables'
 import {RollResult} from './types'
 
 async function main(): Promise<void> {
   process.env.ROLLTABLE_CLI = 'true'
 
-  const sorter = fuzzysort.new({allowTypo: true})
-
   await loadAllTables()
   const keys = getRegistryKeys()
 
-  inquirer.registerPrompt('autocomplete', inquirerAutocomplete)
+  // inquirer.registerPrompt('autocomplete', inquirerAutocomplete)
 
-  const promptTableSearch = async (): Promise<{table: string}> =>
-    inquirer.prompt([
-      {
-        type: 'autocomplete',
-        name: 'table',
-        message: 'Look up a table:',
-        // pageSize: 10,
-        source: (_: unknown, input: string): unknown => {
-          // console.log(answersSoFar)
-          return new Promise((resolve) =>
-            resolve(sorter.go(input, keys).map((r) => r.target)),
-          )
-        },
+  const promptTableSearch = async (): Promise<{table: string}> => ({
+    table: await search({
+      // type: 'autocomplete',
+      // name: 'table',
+      message: 'Look up a table:',
+      // pageSize: 10,
+      source: async (input) => {
+        // console.log(answersSoFar)
+        return fuzzysort.go(input ?? '', keys).map((r) => ({
+          name: r.target,
+          value: r.target,
+          description: r.target,
+          separator: false,
+        }))
       },
-    ])
+    }),
+  })
 
   const processResults = async (
     rollResults: RollResult[][],
@@ -49,13 +46,9 @@ async function main(): Promise<void> {
 
     if (resultsToExpand.length > 0) {
       console.log({resultsToExpand})
-      const expand = (
-        await inquirer.prompt({
-          type: 'confirm',
-          name: 'expand',
-          message: 'Expand related tables?',
-        })
-      ).expand
+      const expand = await confirm({
+        message: 'Expand related tables?',
+      })
       if (expand) {
         otherResults = (
           await Promise.all(

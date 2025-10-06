@@ -1,11 +1,11 @@
-import * as inquirer from 'inquirer'
+import {rawlist} from '@inquirer/prompts'
 
-import {Die, TableRef, TableRollOptions, RollResult} from './types'
-import {TableRow} from './TableRow'
-import {getDiceRange, rangeMin} from './range'
 import {rollDice} from './dice'
 import {applyInputsToText, evaluatePlaceholders} from './evaluate'
 import {EvaluatedTableRow} from './EvaluatedTableRow'
+import {getDiceRange, rangeMin} from './range'
+import {TableRow} from './TableRow'
+import {Die, RollResult, TableRef, TableRollOptions} from './types'
 
 export interface Table {
   dice: Die[]
@@ -22,16 +22,18 @@ export interface RegisteredTable extends Table {
   identifier: string
 }
 
-const numberMatchesRow = (n: number) => (row: TableRow): boolean => {
-  if (typeof row.range === 'number') {
-    if (row.range === n) {
-      return true
-    } else {
-      return false
+const numberMatchesRow =
+  (n: number) =>
+  (row: TableRow): boolean => {
+    if (typeof row.range === 'number') {
+      if (row.range === n) {
+        return true
+      } else {
+        return false
+      }
     }
+    return row.range[0] <= n && row.range[1] >= n
   }
-  return row.range[0] <= n && row.range[1] >= n
-}
 
 export class RegisteredTable implements RegisteredTable {
   constructor(
@@ -74,19 +76,15 @@ export class RegisteredTable implements RegisteredTable {
       // TODO: only in context of CLI
       // eslint-disable-next-line no-constant-condition
       if (process.env.ROLLTABLE_CLI) {
-        const answer = await inquirer.prompt([
-          {
-            message: this.selectablePrompt,
-            name: 'rowSelection',
-            type: 'list',
-            choices: this.rows.map((r) => ({
-              name: r.text,
-              short: r.text,
-              value: rangeMin(r),
-            })),
-          },
-        ])
-        selectedTotal = answer.rowSelection
+        const answer = await rawlist({
+          message: this.selectablePrompt ?? '',
+          choices: this.rows.map((r) => ({
+            name: r.text,
+            short: r.text,
+            value: rangeMin(r),
+          })),
+        })
+        selectedTotal = answer
       }
       return this.roll({...opts, total: selectedTotal})
     }

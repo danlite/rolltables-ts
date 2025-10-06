@@ -12,7 +12,7 @@
     "module": "commonjs",
     "rootDir": "src",
     "strict": true,
-    "target": "es2017",
+    "target": "es2022",
     "alwaysStrict": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": true,

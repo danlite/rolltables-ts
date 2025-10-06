@@ -159,7 +159,7 @@ describe('parse dice strings', () => {
 
 describe('evaluate placeholders', () => {
   test('simple', () => {
-    chalk.enabled = false
+    chalk.level = 0
     const evaluated = evaluatePlaceholders('There are [[@name:d4+1]] things')
     expect(evaluated.text).toMatch(/There are d4\+1 \([2-5]\) things/)
     expect(evaluated.results.name).toBeTruthy()

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import chalk from 'chalk'
+import convert from 'color-convert'
 import {basename} from 'path'
 import {rollBundleOrTable, testTable} from './rolltables'
 import * as tables from './tables'
@@ -157,7 +158,9 @@ const showTableResults = (tableResults: RollResult[]) => {
   let shownTitle = ''
   for (const result of tableResults) {
     if (shownTitle !== result.table.title) {
-      console.log(chalk.keyword('orange')(result.table.title))
+      console.log(
+        chalk.rgb(...convert.keyword.rgb('orange'))(result.table.title),
+      )
       shownTitle = result.table.title
     }
     console.group()

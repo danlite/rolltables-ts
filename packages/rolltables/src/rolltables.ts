@@ -1,4 +1,9 @@
 import chalk from 'chalk'
+import convert from 'color-convert'
+import {parseDice} from './parse'
+import {getDiceRange, Range} from './range'
+import {RegisteredBundle} from './RegisteredBundle'
+import {RegisteredTable} from './RegisteredTable'
 import {getRollable, isBundle} from './tables'
 import {
   RollResult,
@@ -7,10 +12,6 @@ import {
   TableRollOptions,
   TableRowContext,
 } from './types'
-import {getDiceRange, Range} from './range'
-import {parseDice} from './parse'
-import {RegisteredTable} from './RegisteredTable'
-import {RegisteredBundle} from './RegisteredBundle'
 
 const rangeForResultOnTable = (
   result: number,
@@ -138,7 +139,9 @@ export const testTable = async (table: RegisteredTable): Promise<void> => {
     const result = await table.roll({dice: table.dice, total: r, context: {}})
     if (!showedExtraResults) {
       if (result.extraResults) {
-        console.log(chalk.keyword('orange')(result.extraResults.text))
+        console.log(
+          chalk.rgb(...convert.keyword.rgb('orange'))(result.extraResults.text),
+        )
       }
       showedExtraResults = true
     }

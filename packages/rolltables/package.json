@@ -5,32 +5,30 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "chalk": "^2.4.2",
-    "fuzzysort": "^1.1.4",
-    "inquirer": "^6.5.0",
-    "inquirer-autocomplete-prompt": "^1.0.1",
+    "@inquirer/prompts": "^7.8.6",
+    "chalk": "^5.6.2",
+    "color-convert": "^3.1.2",
+    "fuzzysort": "^3.1.0",
     "yaml": "^1.6.0"
   },
   "devDependencies": {
-    "@types/inquirer": "^6.5.0",
-    "@types/jest": "^24.0.15",
-    "@types/node": "^12.6.8",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22",
     "@types/yaml": "^1.0.2",
-    "@typescript-eslint/eslint-plugin": "^2.33.0",
-    "@typescript-eslint/eslint-plugin-tslint": "^2.33.0",
-    "@typescript-eslint/parser": "^2.33.0",
-    "eslint": "^7.0.0",
-    "jest": "^24.8.0",
-    "ts-jest": "^24.0.2",
-    "tslib": "^1.10.0",
-    "typescript": "^4.1"
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
+    "eslint": "^9.37.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.4",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "prepare": "npm run build",
     "build": "tsc",
     "test": "jest",
-    "cli": "ts-node ./src/cli.ts",
-    "debug": "ts-node ./src/debug.ts"
+    "cli": "tsx ./src/cli.ts",
+    "debug": "tsx ./src/debug.ts"
   },
   "files": [
     "dist/**/*"

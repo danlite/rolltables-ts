@@ -1,9 +1,10 @@
 import chalk from 'chalk'
-import {PlaceholderEvaluationResults} from './types'
+import convert from 'color-convert'
+import {formatDice, rollDice} from './dice'
 import {parseDice, parseInteger} from './parse'
-import {rollDice, formatDice} from './dice'
-import {rollTableRef} from './rolltables'
 import {RegisteredTable} from './RegisteredTable'
+import {rollTableRef} from './rolltables'
+import {PlaceholderEvaluationResults} from './types'
 
 interface TextInputModifiers {
   transform?: 'u' | 'l'
@@ -119,7 +120,7 @@ export const evaluatePlaceholders = (
     let chosenStyle = chalk.green
     const firstWord = chosenSection.text.split(' ')[0].toLowerCase()
     try {
-      chosenStyle = chalk.keyword(firstWord)
+      chosenStyle = chalk.rgb(...convert.keyword.rgb(firstWord))
     } catch {
       // No style
     }
@@ -229,10 +230,14 @@ export const applyInputsToText = async (
       }
 
       if (modifiers.colour) {
-        textValue = chalk.keyword(modifiers.colour)(textValue)
+        textValue = chalk.rgb(...convert.keyword.rgb(modifiers.colour))(
+          textValue,
+        )
       }
       if (modifiers.colourBackground) {
-        textValue = chalk.bgKeyword(modifiers.colourBackground)(textValue)
+        textValue = chalk.bgRgb(
+          ...convert.keyword.rgb(modifiers.colourBackground),
+        )(textValue)
       }
 
       text = text.replace(pattern, textValue)
